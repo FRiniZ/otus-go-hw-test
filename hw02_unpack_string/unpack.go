@@ -34,6 +34,10 @@ func stateMachine2ReadRune(r rune) error {
 	switch {
 	case lastRuneEsc:
 		lastRuneEsc = false
+		if r != '\\' && !unicode.IsDigit(r) {
+			err = ErrInvalidString
+			break
+		}
 		_, err = stateMachine2(r, SM2KEEP)
 	case unicode.IsDigit(r):
 		_, err = stateMachine2(r, SM2REPEAT)
