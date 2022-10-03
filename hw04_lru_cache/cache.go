@@ -18,8 +18,8 @@ type lruCache struct {
 }
 
 func (lc *lruCache) Set(key Key, value interface{}) bool {
-	lc.Lock ()
-	defer lc.Unlock ()
+	lc.Lock()
+	defer lc.Unlock()
 	if elm, ok := lc.items[key]; ok {
 		elm.Value = cacheItem{key, value}
 		lc.queue.MoveToFront(elm)
@@ -32,8 +32,6 @@ func (lc *lruCache) Set(key Key, value interface{}) bool {
 		if ok {
 			delete(lc.items, ci.key)
 			lc.queue.Remove(elm)
-		} else {
-			panic("Listitem does not contain cacheItem struct")
 		}
 	}
 
@@ -44,23 +42,21 @@ func (lc *lruCache) Set(key Key, value interface{}) bool {
 }
 
 func (lc *lruCache) Get(key Key) (interface{}, bool) {
-	lc.Lock ()
-	defer lc.Unlock ()
+	lc.Lock()
+	defer lc.Unlock()
 	if elm, ok := lc.items[key]; ok {
 		ci, ok := elm.Value.(cacheItem)
 		if ok {
 			lc.queue.MoveToFront(elm)
 			return ci.value, true
-		} else {
-			panic("Listitem does not contain cacheItem struct")
 		}
 	}
 	return nil, false
 }
 
 func (lc *lruCache) Clear() {
-	lc.Lock ()
-	defer lc.Unlock ()
+	lc.Lock()
+	defer lc.Unlock()
 	lc.queue = NewList()
 	lc.items = make(map[Key]*ListItem, lc.capacity)
 }
