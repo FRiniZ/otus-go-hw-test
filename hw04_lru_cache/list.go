@@ -76,13 +76,23 @@ func (l *list) Remove(i *ListItem) {
 
 	if elmPrev != nil {
 		elmPrev.Next = elmNext
+		if elmPrev.Next == nil {
+			l.tail = elmPrev
+		}
 	}
 
 	if elmNext != nil {
 		elmNext.Prev = elmPrev
+		if elmNext.Prev == nil {
+			l.head = elmNext
+		}
 	}
 
 	l.size--
+	if l.size == 0 {
+		l.head = nil
+		l.tail = nil
+	}
 }
 
 func (l *list) MoveToFront(i *ListItem) {
@@ -95,6 +105,9 @@ func (l *list) MoveToFront(i *ListItem) {
 
 	if elmPrev != nil {
 		elmPrev.Next = elmNext
+		if elmPrev.Next == nil {
+			l.tail = elmPrev
+		}
 	}
 
 	if elmNext != nil {

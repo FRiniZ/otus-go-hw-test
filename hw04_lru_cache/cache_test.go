@@ -49,8 +49,54 @@ func TestCache(t *testing.T) {
 		require.Nil(t, val)
 	})
 
-	t.Run("purge logic", func(t *testing.T) {
-		// Write me
+	t.Run("check capacity", func(t *testing.T) {
+		c := NewCache(3)
+		b := c.Set("i1", 1)
+		require.False(t, b)
+
+		b = c.Set("i2", 2)
+		require.False(t, b)
+
+		b = c.Set("i3", 3)
+		require.False(t, b)
+
+		_, _ = c.Get("i1")
+		_, _ = c.Get("i2")
+
+		b = c.Set("i4", 4)
+		require.False(t, b)
+
+		_, ok := c.Get("i3")
+		require.False(t, ok)
+	})
+	t.Run("check func clear", func(t *testing.T) {
+		c := NewCache(3)
+		b := c.Set("i1", 1)
+		require.False(t, b)
+
+		b = c.Set("i2", 2)
+		require.False(t, b)
+
+		b = c.Set("i3", 3)
+		require.False(t, b)
+
+		c.Clear()
+
+		_, b = c.Get("i1")
+		require.False(t, b)
+		_, b = c.Get("i2")
+		require.False(t, b)
+		_, b = c.Get("i3")
+		require.False(t, b)
+
+		b = c.Set("i1", 1)
+		require.False(t, b)
+
+		b = c.Set("i2", 2)
+		require.False(t, b)
+
+		b = c.Set("i3", 3)
+		require.False(t, b)
 	})
 }
 

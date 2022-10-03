@@ -32,8 +32,7 @@ func (lc *lruCache) Set(key Key, value interface{}) bool {
 		}
 	}
 
-	elm := &ListItem{cacheItem{key, value}, nil, nil}
-	lc.queue.PushFront(elm)
+	elm := lc.queue.PushFront(cacheItem{key, value})
 	lc.items[key] = elm
 
 	return false
@@ -58,15 +57,8 @@ func (lc *lruCache) Get(key Key) (interface{}, bool) {
 }
 
 func (lc *lruCache) Clear() {
-	for i := lc.queue.Front(); i != nil; {
-		ci, ok := i.Value.(cacheItem)
-		if ok {
-			delete(lc.items, ci.key)
-			lc.queue.Remove(i)
-		} else {
-			panic("Listitem does not contain cacheItem struct")
-		}
-	}
+	lc.queue = NewList()
+	lc.items = make(map[Key]*ListItem, lc.capacity)
 }
 
 type cacheItem struct {
