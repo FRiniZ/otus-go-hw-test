@@ -12,7 +12,7 @@ func ExecutePipeline(in In, done In, stages ...Stage) Out {
 	out := in
 
 	worker := func(done In, chIn In) Out {
-		ch := make(chan interface{})
+		ch := make(Bi)
 		go func() {
 			defer close(ch)
 			for {

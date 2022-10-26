@@ -36,6 +36,12 @@ func TestPipeline(t *testing.T) {
 		g("Stringifier", func(v interface{}) interface{} { return strconv.Itoa(v.(int)) }),
 	}
 
+	stages2 := []Stage{
+		g("Hi", func(v interface{}) interface{} { return "Hi! " + v.(string) }),
+		g("Nice", func(v interface{}) interface{} { return v.(string) + " Have a nice day!" }),
+		g("Bye", func(v interface{}) interface{} { return v.(string) + " Bye!" }),
+	}
+
 	t.Run("simple case", func(t *testing.T) {
 		in := make(Bi)
 		data := []int{1, 2, 3, 4, 5}
@@ -59,6 +65,50 @@ func TestPipeline(t *testing.T) {
 			int64(elapsed),
 			// ~0.8s for processing 5 values in 4 stages (100ms every) concurrently
 			int64(sleepPerStage)*int64(len(stages)+len(data)-1)+int64(fault))
+	})
+
+	t.Run("strings case", func(t *testing.T) {
+		in := make(Bi)
+		data := []string{"Agneum", "Dreamweaver3x", "egakupi", "farir1408", "sshaplygin"}
+
+		go func() {
+			for _, v := range data {
+				in <- v
+			}
+			close(in)
+		}()
+
+		result := make([]string, 0, 10)
+		for s := range ExecutePipeline(in, nil, stages2...) {
+			result = append(result, s.(string))
+		}
+
+		require.Equal(t, []string{
+			"Hi! Agneum Have a nice day! Bye!",
+			"Hi! Dreamweaver3x Have a nice day! Bye!",
+			"Hi! egakupi Have a nice day! Bye!",
+			"Hi! farir1408 Have a nice day! Bye!",
+			"Hi! sshaplygin Have a nice day! Bye!",
+		}, result)
+	})
+
+	t.Run("negative case", func(t *testing.T) {
+		in := make(Bi)
+		data := []int{1, 2, 3, 4, 10}
+
+		go func() {
+			for _, v := range data {
+				in <- v
+			}
+			close(in)
+		}()
+
+		result := make([]string, 0, 10)
+		for s := range ExecutePipeline(in, nil, stages...) {
+			result = append(result, s.(string))
+		}
+
+		require.NotEqual(t, []string{"102", "104", "106", "108", "110"}, result)
 	})
 
 	t.Run("done case", func(t *testing.T) {
