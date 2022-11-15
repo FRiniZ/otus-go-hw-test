@@ -3,7 +3,9 @@ package main
 import (
 	"errors"
 	"io"
+	"log"
 	"os"
+
 	"github.com/cheggaaa/pb/v3"
 )
 
@@ -13,11 +15,10 @@ var (
 )
 
 func Copy(fromPath, toPath string, offset, limit int64) error {
-	var err_last error = nil
-
-	in, err := os.Open (fromPath)
+	in, err := os.Open(fromPath)
 	if err != nil {
-		return err
+		log.Println(err)
+		return ErrUnsupportedFile
 	}
 
 	fi, err := in.Stat()
@@ -27,43 +28,35 @@ func Copy(fromPath, toPath string, offset, limit int64) error {
 
 	defer in.Close()
 
-	out, err := os.Create (toPath)
+	out, err := os.Create(toPath)
 	if err != nil {
-		return err
+		log.Println(err)
+		return ErrUnsupportedFile
 	}
 
 	defer out.Close()
 
 	if offset > 0 {
-	    if (offset > fi.Size()) {
-		return ErrOffsetExceedsFileSize
-	    }
-	    in.Seek (offset, 0)
-	}
-
-	limit_r := limit
-	if limit_r == 0 || (fi.Size() > 0 &&limit_r > fi.Size() - offset) {
-	    limit_r = fi.Size() - offset
-	}
-
-	in_limit := io.LimitReader (in, limit_r)
-
-	bar := pb.Full.Start64(limit_r)
-
-	barReader := bar.NewProxyReader(in_limit)
-
-	for {
-		_, err := io.CopyN(out, barReader, 1024)
-		if err != nil {
-		    if err == io.EOF {
-			break
-		    }
-		    err_last = err	
-		    break;
+		if offset > fi.Size() {
+			return ErrOffsetExceedsFileSize
 		}
+		in.Seek(offset, 0)
 	}
+
+	limitRead := limit
+	if limitRead == 0 || (fi.Size() > 0 && limitRead > fi.Size()-offset) {
+		limitRead = fi.Size() - offset
+	}
+
+	inLimitReader := io.LimitReader(in, limitRead)
+
+	bar := pb.Full.Start64(limitRead)
+
+	barReader := bar.NewProxyReader(inLimitReader)
+
+	io.Copy(out, barReader)
 
 	bar.Finish()
 
-	return err_last
+	return nil
 }
