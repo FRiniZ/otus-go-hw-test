@@ -28,7 +28,7 @@ func TestRunCmd(t *testing.T) {
 		{
 			name: "negative test",
 			cmds: []string{"llls", "-ll"},
-			rc:   127,
+			rc:   -1,
 			envr: Environment{},
 		},
 		{

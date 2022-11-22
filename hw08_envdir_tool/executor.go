@@ -29,10 +29,7 @@ func RunCmd(cmd []string, env Environment) (returnCode int) {
 	eCmd.Stderr = os.Stderr
 
 	if err := eCmd.Run(); err != nil {
-		if exitErr, ok := interface{}(err).(*exec.ExitError); ok {
-			return exitErr.ExitCode()
-		}
-		return 127
+		return eCmd.ProcessState.ExitCode()
 	}
 
 	return 0

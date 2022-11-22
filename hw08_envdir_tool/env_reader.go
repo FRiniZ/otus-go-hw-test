@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -15,15 +16,15 @@ type EnvValue struct {
 	NeedRemove bool
 }
 
-func getEnvValue(filename string) (*EnvValue, error) {
-	eV := &EnvValue{
+func getEnvValue(filename string) (EnvValue, error) {
+	eV := EnvValue{
 		Value:      "",
 		NeedRemove: true,
 	}
 
 	file, err := os.Open(filename)
 	if err != nil {
-		return nil, err
+		return eV, err
 	}
 
 	defer file.Close()
@@ -31,7 +32,6 @@ func getEnvValue(filename string) (*EnvValue, error) {
 	scanner := bufio.NewScanner(file)
 	scanner.Scan()
 	if line := scanner.Text(); line != "" {
-		line := scanner.Text()
 		line = strings.TrimRight(line, " \t")
 		line = string(bytes.ReplaceAll([]byte(line), []byte("\x00"), []byte("\n")))
 		if line != "" {
@@ -41,7 +41,7 @@ func getEnvValue(filename string) (*EnvValue, error) {
 	}
 
 	if err := scanner.Err(); err != nil {
-		return nil, err
+		return eV, err
 	}
 
 	return eV, nil
@@ -62,11 +62,11 @@ func ReadDir(dir string) (Environment, error) {
 			continue
 		}
 
-		t, err := getEnvValue(dir + "/" + s.Name())
+		t, err := getEnvValue(filepath.Join(dir, s.Name()))
 		if err != nil {
 			return nil, err
 		}
-		Env[s.Name()] = *t
+		Env[s.Name()] = t
 	}
 
 	return Env, nil
