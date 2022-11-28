@@ -135,8 +135,9 @@ func TestValidate(t *testing.T) {
 			in: App{
 				Version: "1.0.0",
 				User: User{
-					Age: 18,
-					ID:  "Renatttttttttttttttttttttttttttttttt",
+					Age:   18,
+					ID:    "Renatttttttttttttttttttttttttttttttt",
+					Email: "frenatz@gmail.com",
 				},
 			},
 		},

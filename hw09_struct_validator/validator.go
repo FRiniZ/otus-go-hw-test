@@ -64,12 +64,11 @@ func (v ValidationErrors) Is(target error) bool {
 }
 
 func (v ValidationErrors) Error() string {
-	err := strings.Builder{}
-
 	if len(v) == 0 {
-		return err.String()
+		return ""
 	}
 
+	err := strings.Builder{}
 	for _, i := range v {
 		str := fmt.Sprintf("Field[%s] %s;", i.Field, i.Err)
 		err.WriteString(str)
@@ -88,54 +87,38 @@ type ValidatableItem struct {
 
 type ValidatableItems []ValidatableItem
 
-func (item ValidatableItem) Regexp(vp *ValidationErrors) {
-	switch item.rVal.Kind() {
-	case reflect.String:
-		if item.rVal.String() != "" {
-			fmt.Printf("Checking %v %v\n", item.vArg, item.rVal.String())
-			matched, err := regexp.MatchString(item.vArg, item.rVal.String())
-			if err != nil {
-				*vp = append(*vp, ValidationError{Field: item.FieldName, Err: err})
-				break
-			}
-
-			if !matched {
-				*vp = append(*vp, ValidationError{
-					Field: item.FieldName,
-					Err:   fmt.Errorf("%w (%s  ∉ \"%s\")", ErrValidationRegExp, item.rVal.String(), item.vArg),
-				})
+func (item ValidatableItem) Regexp() error {
+	if item.rVal.Kind() == reflect.String && item.rVal.String() != "" {
+		if matched, err := regexp.MatchString(item.vArg, item.rVal.String()); err != nil {
+			return &ValidationError{Field: item.FieldName, Err: err}
+		} else if !matched {
+			return &ValidationError{
+				Field: item.FieldName,
+				Err:   fmt.Errorf("%w (%s  ∉ \"%s\")", ErrValidationRegExp, item.rVal.String(), item.vArg),
 			}
 		}
-	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
-		reflect.Array, reflect.Bool, reflect.Chan, reflect.Complex128, reflect.Complex64,
-		reflect.Float32, reflect.Float64, reflect.Func, reflect.Interface, reflect.Invalid, reflect.Slice,
-		reflect.Map, reflect.Ptr, reflect.Struct, reflect.Uint, reflect.Uint16, reflect.Uint32,
-		reflect.Uint64, reflect.Uint8, reflect.Uintptr, reflect.UnsafePointer:
-		*vp = append(*vp, ValidationError{
+	} else {
+		return &ValidationError{
 			Field: item.FieldName,
 			Err:   fmt.Errorf("%w (wrong field type:%s)", ErrValidationRegExp, item.rVal.Kind().String()),
-		})
-	default:
-		*vp = append(*vp, ValidationError{
-			Field: item.FieldName,
-			Err:   fmt.Errorf("%w (wrong field type:%s)", ErrValidationRegExp, item.rVal.Kind().String()),
-		})
+		}
 	}
+
+	return nil
 }
 
-func (item ValidatableItem) In(vp *ValidationErrors) {
+func (item ValidatableItem) In() error {
 	in := false
-	switch item.rVal.Kind() {
+	switch item.rVal.Kind() { //nolint:exhaustive
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		if item.rVal.Int() == 0 {
-			break
+			return nil
 		}
 		sslice := strings.Split(item.vArg, ",")
 		for _, s := range sslice {
 			i, err := strconv.ParseInt(s, 10, 64)
 			if err != nil {
-				*vp = append(*vp, ValidationError{Field: item.FieldName, Err: err})
-				break
+				return &ValidationError{Field: item.FieldName, Err: err}
 			}
 			if i == item.rVal.Int() {
 				in = true
@@ -143,14 +126,14 @@ func (item ValidatableItem) In(vp *ValidationErrors) {
 			}
 		}
 		if !in {
-			*vp = append(*vp, ValidationError{
+			return &ValidationError{
 				Field: item.FieldName,
 				Err:   fmt.Errorf("%w (%d not in[%s])", ErrValidationIn, item.rVal.Int(), item.vArg),
-			})
+			}
 		}
 	case reflect.String:
 		if item.rVal.String() == "" {
-			break
+			return nil
 		}
 		sslice := strings.Split(item.vArg, ",")
 		for _, s := range sslice {
@@ -160,238 +143,210 @@ func (item ValidatableItem) In(vp *ValidationErrors) {
 			}
 		}
 		if !in {
-			*vp = append(*vp, ValidationError{
+			return &ValidationError{
 				Field: item.FieldName,
 				Err:   fmt.Errorf("%w (%s not in[%s])", ErrValidationIn, item.rVal.String(), item.vArg),
-			})
+			}
 		}
-	case reflect.Array, reflect.Bool, reflect.Chan, reflect.Complex128, reflect.Complex64,
-		reflect.Float32, reflect.Float64, reflect.Func, reflect.Interface, reflect.Invalid, reflect.Slice,
-		reflect.Map, reflect.Ptr, reflect.Struct, reflect.Uint, reflect.Uint16, reflect.Uint32,
-		reflect.Uint64, reflect.Uint8, reflect.Uintptr, reflect.UnsafePointer:
-		*vp = append(*vp, ValidationError{
-			Field: item.FieldName,
-			Err:   fmt.Errorf("%w (wrong field type:%s)", ErrValidationIn, item.rVal.Kind().String()),
-		})
 	default:
-		*vp = append(*vp, ValidationError{
+		return &ValidationError{
 			Field: item.FieldName,
 			Err:   fmt.Errorf("%w (wrong field type:%s)", ErrValidationIn, item.rVal.Kind().String()),
-		})
+		}
 	}
+	return nil
 }
 
-func (item ValidatableItem) Len(vp *ValidationErrors) {
-	switch item.rVal.Kind() {
+func (item ValidatableItem) Len() *ValidationError {
+	switch item.rVal.Kind() { //nolint:exhaustive
 	case reflect.Slice:
 		slen, err := strconv.Atoi(item.vArg)
 		if err != nil {
-			*vp = append(*vp, ValidationError{Field: item.FieldName, Err: err})
-			break
+			return &ValidationError{Field: item.FieldName, Err: err}
 		}
 		for i := 0; i < item.rVal.Len(); i++ {
 			rF := item.rVal.Index(i)
 			if reflect.TypeOf(rF.Interface()).Kind() == reflect.String {
 				if rF.Len() != slen {
-					*vp = append(*vp, ValidationError{
+					return &ValidationError{
 						Field: item.FieldName,
 						Err:   fmt.Errorf("%w (%d != %d)", ErrValidationLen, rF.Len(), slen),
-					})
+					}
 				}
 			} else {
-				*vp = append(*vp, ValidationError{
+				return &ValidationError{
 					Field: item.FieldName,
 					Err:   fmt.Errorf("%w (wrong field type:%s)", ErrValidationLen, rF.Kind().String()),
-				})
+				}
 			}
 		}
 	case reflect.String:
 		slen, err := strconv.Atoi(item.vArg)
 		if err != nil {
-			*vp = append(*vp, ValidationError{Field: item.FieldName, Err: err})
-			break
+			return &ValidationError{Field: item.FieldName, Err: err}
 		}
 		if item.rVal.Len() != slen {
-			*vp = append(*vp, ValidationError{
+			return &ValidationError{
 				Field: item.FieldName,
 				Err:   fmt.Errorf("%w (%d != %d)", ErrValidationLen, item.rVal.Len(), slen),
-			})
+			}
 		}
-	case reflect.Array, reflect.Bool, reflect.Chan, reflect.Complex128, reflect.Complex64,
-		reflect.Float32, reflect.Float64, reflect.Func, reflect.Int, reflect.Int16,
-		reflect.Int32, reflect.Int64, reflect.Int8, reflect.Interface, reflect.Invalid,
-		reflect.Map, reflect.Ptr, reflect.Struct, reflect.Uint, reflect.Uint16, reflect.Uint32,
-		reflect.Uint64, reflect.Uint8, reflect.Uintptr, reflect.UnsafePointer:
-		*vp = append(*vp, ValidationError{
-			Field: item.FieldName,
-			Err:   fmt.Errorf("%w (wrong field type:%s)", ErrValidationLen, item.rVal.Kind().String()),
-		})
 	default:
-		*vp = append(*vp, ValidationError{
+		return &ValidationError{
 			Field: item.FieldName,
 			Err:   fmt.Errorf("%w (wrong field type:%s)", ErrValidationLen, item.rVal.Kind().String()),
-		})
+		}
 	}
+
+	return nil
 }
 
-func (item ValidatableItem) Min(vp *ValidationErrors) {
-	switch item.rVal.Kind() {
+func (item ValidatableItem) Min() error {
+	switch item.rVal.Kind() { //nolint:exhaustive
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		min, err := strconv.ParseInt(item.vArg, 10, 64)
 		if err != nil {
-			*vp = append(*vp, ValidationError{Field: item.FieldName, Err: err})
-			break
+			return &ValidationError{Field: item.FieldName, Err: err}
 		}
 
 		if item.rVal.Int() < min {
-			*vp = append(*vp, ValidationError{
+			return &ValidationError{
 				Field: item.FieldName,
 				Err:   fmt.Errorf("%w (%d < %d)", ErrValidationMin, item.rVal.Int(), min),
-			})
+			}
 		}
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 		min, err := strconv.ParseUint(item.vArg, 10, 64)
 		if err != nil {
-			*vp = append(*vp, ValidationError{Field: item.FieldName, Err: err})
-			break
+			return &ValidationError{Field: item.FieldName, Err: err}
 		}
 
 		if item.rVal.Uint() < min {
-			*vp = append(*vp, ValidationError{
+			return &ValidationError{
 				Field: item.FieldName,
 				Err:   fmt.Errorf("%w (%d < %d)", ErrValidationMin, item.rVal.Uint(), min),
-			})
+			}
 		}
 	case reflect.Float32, reflect.Float64:
 		min, err := strconv.ParseFloat(item.vArg, 64)
 		if err != nil {
-			*vp = append(*vp, ValidationError{Field: item.FieldName, Err: err})
-			break
+			return &ValidationError{Field: item.FieldName, Err: err}
 		}
 
 		// Maybe needs use something to check float-values. But I think this enough for our app
 		if item.rVal.Float() < min {
-			*vp = append(*vp, ValidationError{
+			return &ValidationError{
 				Field: item.FieldName,
 				Err:   fmt.Errorf("%w (%g < %g)", ErrValidationMin, item.rVal.Float(), min),
-			})
+			}
 		}
 	case reflect.Complex64, reflect.Complex128:
 		min, err := strconv.ParseComplex(item.vArg, 128)
 		if err != nil {
-			*vp = append(*vp, ValidationError{Field: item.FieldName, Err: err})
-			break
+			return &ValidationError{Field: item.FieldName, Err: err}
 		}
 
 		if real(item.rVal.Complex()) == real(min) && imag(item.rVal.Complex()) < imag(min) {
-			*vp = append(*vp, ValidationError{
+			return &ValidationError{
 				Field: item.FieldName,
 				Err:   fmt.Errorf("%w failure (%v < %v)", ErrValidationMin, item.rVal.Complex(), min),
-			})
+			}
 		}
 		if real(item.rVal.Complex()) < real(min) {
-			*vp = append(*vp, ValidationError{
+			return &ValidationError{
 				Field: item.FieldName,
 				Err:   fmt.Errorf("%w failure (%v < %v)", ErrValidationMin, item.rVal.Complex(), min),
-			})
+			}
 		}
-	case reflect.Array, reflect.Bool, reflect.Chan, reflect.Func, reflect.Interface, reflect.Invalid, reflect.Map,
-		reflect.Ptr, reflect.Slice, reflect.String, reflect.Struct, reflect.Uintptr, reflect.UnsafePointer:
-		*vp = append(*vp, ValidationError{
-			Field: item.FieldName,
-			Err:   fmt.Errorf("%w (wrong field type:%s)", ErrValidationMin, item.rVal.Kind().String()),
-		})
 	default:
-		*vp = append(*vp, ValidationError{
+		return &ValidationError{
 			Field: item.FieldName,
 			Err:   fmt.Errorf("%w (wrong field type:%s)", ErrValidationMin, item.rVal.Kind().String()),
-		})
+		}
 	}
+	return nil
 }
 
-func (item ValidatableItem) Max(vp *ValidationErrors) {
-	switch item.rVal.Kind() {
+func (item ValidatableItem) Max() error {
+	switch item.rVal.Kind() { //nolint:exhaustive
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		max, err := strconv.ParseInt(item.vArg, 10, 64)
 		if err != nil {
-			*vp = append(*vp, ValidationError{Field: item.FieldName, Err: err})
-			break
+			return &ValidationError{Field: item.FieldName, Err: err}
 		}
 
 		if item.rVal.Int() > max {
-			*vp = append(*vp, ValidationError{
+			return &ValidationError{
 				Field: item.FieldName,
 				Err:   fmt.Errorf("%w failure (%d > %d)", ErrValidationMax, item.rVal.Int(), max),
-			})
+			}
 		}
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 		max, err := strconv.ParseUint(item.vArg, 10, 64)
 		if err != nil {
-			*vp = append(*vp, ValidationError{Field: item.FieldName, Err: err})
-			break
+			return &ValidationError{Field: item.FieldName, Err: err}
 		}
 
 		if item.rVal.Uint() > max {
-			*vp = append(*vp, ValidationError{
+			return &ValidationError{
 				Field: item.FieldName,
 				Err:   fmt.Errorf("%w (%d < %d)", ErrValidationMax, item.rVal.Uint(), max),
-			})
+			}
 		}
 	case reflect.Complex64, reflect.Complex128:
 		max, err := strconv.ParseComplex(item.vArg, 128)
 		if err != nil {
-			*vp = append(*vp, ValidationError{Field: item.FieldName, Err: err})
-			break
+			return &ValidationError{Field: item.FieldName, Err: err}
 		}
 
 		if real(item.rVal.Complex()) == real(max) && imag(item.rVal.Complex()) > imag(max) {
-			*vp = append(*vp, ValidationError{
+			return &ValidationError{
 				Field: item.FieldName,
 				Err:   fmt.Errorf("%w failure (%v > %v)", ErrValidationMax, item.rVal.Complex(), max),
-			})
+			}
 		}
 		if real(item.rVal.Complex()) > real(max) {
-			*vp = append(*vp, ValidationError{
+			return &ValidationError{
 				Field: item.FieldName,
 				Err:   fmt.Errorf("%w failure (%v > %v)", ErrValidationMax, item.rVal.Complex(), max),
-			})
+			}
 		}
 	case reflect.Float32, reflect.Float64:
 		max, err := strconv.ParseFloat(item.vArg, 64)
 		if err != nil {
-			*vp = append(*vp, ValidationError{Field: item.FieldName, Err: err})
-			break
+			return &ValidationError{Field: item.FieldName, Err: err}
 		}
 
 		// Maybe needs use something to check float-values. But I think it should be enough for our app
 		if item.rVal.Float() > max {
-			*vp = append(*vp, ValidationError{
+			return &ValidationError{
 				Field: item.FieldName,
 				Err:   fmt.Errorf("%w (%g < %g)", ErrValidationMax, item.rVal.Float(), max),
-			})
+			}
 		}
-	case reflect.Array, reflect.Bool, reflect.Chan, reflect.Func, reflect.Interface, reflect.Invalid, reflect.Map,
-		reflect.Ptr, reflect.Slice, reflect.String, reflect.Struct, reflect.Uintptr, reflect.UnsafePointer:
-		*vp = append(*vp, ValidationError{
-			Field: item.FieldName,
-			Err:   fmt.Errorf("%w (wrong field type:%s)", ErrValidationMax, item.rVal.Kind().String()),
-		})
 	default:
-		*vp = append(*vp, ValidationError{
+		return &ValidationError{
 			Field: item.FieldName,
 			Err:   fmt.Errorf("%w (wrong field type:%s)", ErrValidationMax, item.rVal.Kind().String()),
-		})
+		}
 	}
+
+	return nil
 }
 
-func doValidate(vItems *ValidatableItems, vErr *ValidationErrors) {
-	for _, vI := range *vItems {
+func doValidate(vItems ValidatableItems, vErr ValidationErrors) ValidationErrors {
+	for _, vI := range vItems {
 		if _, ok := reflect.TypeOf(vI).MethodByName(vI.vCmd); ok {
-			reflect.ValueOf(vI).MethodByName(vI.vCmd).Call([]reflect.Value{reflect.ValueOf(vErr)})
+			if rVal := reflect.ValueOf(vI).MethodByName(vI.vCmd).Call(nil); len(rVal) == 1 {
+				if err, ok := rVal[0].Interface().(*ValidationError); ok && err != nil {
+					vErr = append(vErr, *err)
+				}
+			}
 			continue
 		}
-		*vErr = append(*vErr, ValidationError{Field: vI.FieldName, Err: fmt.Errorf("%w \"%s\"", ErrValidationNImpl, vI.oCmd)})
+		vErr = append(vErr, ValidationError{Field: vI.FieldName, Err: fmt.Errorf("%w \"%s\"", ErrValidationNImpl, vI.oCmd)})
 	}
+	return vErr
 }
 
 func parseStruct(v interface{}) (ValidatableItems, ValidationErrors) {
@@ -443,8 +398,10 @@ func Validate(v interface{}) error {
 		return nil
 	}
 
-	vItems, vErrs := parseStruct(v)
-	doValidate(&vItems, &vErrs)
+	//	vItems, vErrs := parseStruct(v)
+	//	doValidate(&vItems, &vErrs)
+
+	vErrs := doValidate(parseStruct(v))
 
 	if len(vErrs) == 0 {
 		return nil
