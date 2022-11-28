@@ -19,11 +19,6 @@ type (
 		WrongCmd string `validate:"len11"`
 	}
 
-	Site struct {
-		URL    string `validate:"regexp:/^(https?:\\/\\/)?([\\w\\.]+)\\.([a-z]{2,6}\\.?)(\\/[\\w\\.]*)*\\/?$/"`
-		Access bool   `validate:"bool:true"`
-	}
-
 	User struct {
 		ID     string `json:"id" validate:"len:36"`
 		Name   string

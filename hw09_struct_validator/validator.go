@@ -434,6 +434,7 @@ func parseStruct(v interface{}) (ValidatableItems, ValidationErrors) {
 			}
 		}
 	}
+
 	return vItem, vErr
 }
 
