@@ -109,7 +109,7 @@ func (item ValidatableItem) Regexp(vp *ValidationErrors) {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
 		reflect.Array, reflect.Bool, reflect.Chan, reflect.Complex128, reflect.Complex64,
 		reflect.Float32, reflect.Float64, reflect.Func, reflect.Interface, reflect.Invalid, reflect.Slice,
-		reflect.Map, reflect.Pointer, reflect.Struct, reflect.Uint, reflect.Uint16, reflect.Uint32,
+		reflect.Map, reflect.Ptr, reflect.Struct, reflect.Uint, reflect.Uint16, reflect.Uint32,
 		reflect.Uint64, reflect.Uint8, reflect.Uintptr, reflect.UnsafePointer:
 		*vp = append(*vp, ValidationError{
 			Field: item.FieldName,
@@ -167,7 +167,7 @@ func (item ValidatableItem) In(vp *ValidationErrors) {
 		}
 	case reflect.Array, reflect.Bool, reflect.Chan, reflect.Complex128, reflect.Complex64,
 		reflect.Float32, reflect.Float64, reflect.Func, reflect.Interface, reflect.Invalid, reflect.Slice,
-		reflect.Map, reflect.Pointer, reflect.Struct, reflect.Uint, reflect.Uint16, reflect.Uint32,
+		reflect.Map, reflect.Ptr, reflect.Struct, reflect.Uint, reflect.Uint16, reflect.Uint32,
 		reflect.Uint64, reflect.Uint8, reflect.Uintptr, reflect.UnsafePointer:
 		*vp = append(*vp, ValidationError{
 			Field: item.FieldName,
@@ -220,7 +220,7 @@ func (item ValidatableItem) Len(vp *ValidationErrors) {
 	case reflect.Array, reflect.Bool, reflect.Chan, reflect.Complex128, reflect.Complex64,
 		reflect.Float32, reflect.Float64, reflect.Func, reflect.Int, reflect.Int16,
 		reflect.Int32, reflect.Int64, reflect.Int8, reflect.Interface, reflect.Invalid,
-		reflect.Map, reflect.Pointer, reflect.Struct, reflect.Uint, reflect.Uint16, reflect.Uint32,
+		reflect.Map, reflect.Ptr, reflect.Struct, reflect.Uint, reflect.Uint16, reflect.Uint32,
 		reflect.Uint64, reflect.Uint8, reflect.Uintptr, reflect.UnsafePointer:
 		*vp = append(*vp, ValidationError{
 			Field: item.FieldName,
@@ -296,7 +296,7 @@ func (item ValidatableItem) Min(vp *ValidationErrors) {
 			})
 		}
 	case reflect.Array, reflect.Bool, reflect.Chan, reflect.Func, reflect.Interface, reflect.Invalid, reflect.Map,
-		reflect.Pointer, reflect.Slice, reflect.String, reflect.Struct, reflect.Uintptr, reflect.UnsafePointer:
+		reflect.Ptr, reflect.Slice, reflect.String, reflect.Struct, reflect.Uintptr, reflect.UnsafePointer:
 		*vp = append(*vp, ValidationError{
 			Field: item.FieldName,
 			Err:   fmt.Errorf("%w (wrong field type:%s)", ErrValidationMin, item.rVal.Kind().String()),
@@ -371,7 +371,7 @@ func (item ValidatableItem) Max(vp *ValidationErrors) {
 			})
 		}
 	case reflect.Array, reflect.Bool, reflect.Chan, reflect.Func, reflect.Interface, reflect.Invalid, reflect.Map,
-		reflect.Pointer, reflect.Slice, reflect.String, reflect.Struct, reflect.Uintptr, reflect.UnsafePointer:
+		reflect.Ptr, reflect.Slice, reflect.String, reflect.Struct, reflect.Uintptr, reflect.UnsafePointer:
 		*vp = append(*vp, ValidationError{
 			Field: item.FieldName,
 			Err:   fmt.Errorf("%w (wrong field type:%s)", ErrValidationMax, item.rVal.Kind().String()),
