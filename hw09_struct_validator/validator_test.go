@@ -58,120 +58,117 @@ func TestValidate(t *testing.T) {
 		expectedErrIs error
 		expectedErrAs interface{}
 	}{
-		/*
-			{
-				name: "min",
-				in: User{
-					Age: 17,
-				},
-				expectedErrIs: ErrValidationMin,
+		{
+			name: "min",
+			in: User{
+				Age: 17,
 			},
-			{
-				name: "max",
-				in: User{
-					Age: 51,
-				},
-				expectedErrIs: ErrValidationMax,
+			expectedErrIs: ErrValidationMin,
+		},
+		{
+			name: "max",
+			in: User{
+				Age: 51,
 			},
-			{
-				name: "len",
-				in: User{
-					ID: "UUID",
-				},
-				expectedErrIs: ErrValidationLen,
+			expectedErrIs: ErrValidationMax,
+		},
+		{
+			name: "len",
+			in: User{
+				ID: "UUID",
 			},
-			{
-				name: "in",
-				in: User{
-					Role: "admins",
-				},
-				expectedErrIs: ErrValidationIn,
+			expectedErrIs: ErrValidationLen,
+		},
+		{
+			name: "in",
+			in: User{
+				Role: "admins",
 			},
-			{
-				name: "regexp",
-				in: User{
-					Email: "frenatz@gmailcom",
-				},
-				expectedErrIs: ErrValidationRegExp,
+			expectedErrIs: ErrValidationIn,
+		},
+		{
+			name: "regexp",
+			in: User{
+				Email: "frenatz@gmailcom",
 			},
-			{
-				name: "not implemented",
-				in: WrongCase{
-					NotImpl: 1,
-				},
-				expectedErrIs: ErrValidationNImpl,
+			expectedErrIs: ErrValidationRegExp,
+		},
+		{
+			name: "not implemented",
+			in: WrongCase{
+				NotImpl: 1,
 			},
-			{
-				name: "parse failure",
-				in: WrongCase{
-					WrongCmd: "wrong",
-				},
-				expectedErrIs: ErrValidationParse,
+			expectedErrIs: ErrValidationNImpl,
+		},
+		{
+			name: "parse failure",
+			in: WrongCase{
+				WrongCmd: "wrong",
 			},
+			expectedErrIs: ErrValidationParse,
+		},
 
-				{
-					name: "zero value",
-					in: WrongCase{
-						V0: 0,
-					},
-					expectedErrIs: ErrValidationMin,
-				},
-		*/
+		{
+			name: "zero value",
+			in: WrongCase{
+				V0: 0,
+			},
+			expectedErrIs: ErrValidationMin,
+		},
 
 		{
 			name: "all positive",
 			in: User{
-				Age:   43,
-				ID:    "Renatttttttttttttttttttttttttttttttt",
-				Role:  "admin",
-				Email: "frenatz@gmail.com",
-				//Phones: []string{"79171231213", "79173333333"},
+				Age:    43,
+				ID:     "Renatttttttttttttttttttttttttttttttt",
+				Role:   "admin",
+				Email:  "frenatz@gmail.com",
+				Phones: []string{"79171231213", "79173333333"},
+				meta:   json.RawMessage(`{"name": value}`),
 			},
 			expectedErrIs: nil,
 			expectedErrAs: nil,
 		},
-		/*
-			{
-				name:          "struct without tags",
-				in:            UserRole("userRole"),
-				expectedErrIs: nil,
-				expectedErrAs: nil,
-			},
-			{
-				name: "struct with substructs",
-				in: App{
-					Version: "1.0.0",
-					User: User{
-						ID: "Renatttttttttttttttttttttttttttttttt",
-					},
+		{
+			name:          "struct without tags",
+			in:            UserRole("userRole"),
+			expectedErrIs: nil,
+			expectedErrAs: nil,
+		},
+		{
+			name: "struct with substructs",
+			in: App{
+				Version: "1.0.0",
+				User: User{
+					Age: 18,
+					ID:  "Renatttttttttttttttttttttttttttttttt",
 				},
 			},
-			{
-				name: "struct with substructs negative",
-				in: App{
-					Version: "1.0.0",
-					User: User{
-						Age: 1,
-					},
+		},
+		{
+			name: "struct with substructs negative",
+			in: App{
+				Version: "1.0.0",
+				User: User{
+					Age: 1,
 				},
-				expectedErrIs: ErrValidationMin,
 			},
-			{
-				name: "errors.As",
-				in: Response{
-					Code: 300,
-					Body: "{\"name\": \"value\"}",
-				},
-				expectedErrAs: &ValidationError{Field: "Code", Err: ErrValidationIn},
+			expectedErrIs: ErrValidationMin,
+		},
+		{
+			name: "errors.As",
+			in: Response{
+				Code: 300,
+				Body: "{\"name\": \"value\"}",
 			},
-		*/
+			expectedErrAs: &ValidationError{Field: "Code", Err: ErrValidationIn},
+		},
 	}
 
 	for _, tt := range tests {
-
 		t.Run(fmt.Sprintf("case %s", tt.name), func(t *testing.T) {
 			tt := tt
-			//t.Parallel()
+			t.Parallel()
 			err := Validate(tt.in)
 			if tt.expectedErrAs == nil && tt.expectedErrIs == nil {
 				require.Truef(t, errors.Is(err, nil), "expected:\"%v\" got:\"%v\"", nil, err)
