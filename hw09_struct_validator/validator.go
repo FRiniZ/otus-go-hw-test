@@ -12,13 +12,13 @@ import (
 
 var (
 	ErrValidationNImpl  = errors.New("validation: not implemented")
-	ErrValidationParse  = errors.New("validation:? parse \"cmd:arg\" failure")
-	ErrValidationMin    = errors.New("validation:min failure")
-	ErrValidationMax    = errors.New("validation:max failure")
-	ErrValidationLen    = errors.New("validation:len failure")
-	ErrValidationIn     = errors.New("validation:in failure")
-	ErrValidationRegExp = errors.New("validation:regexp failure")
-	ErrVarlidationType  = errors.New("validation:* wrong type")
+	ErrValidationParse  = errors.New("validation: parse \"cmd:arg\" failure")
+	ErrValidationMin    = errors.New("validation: min failure")
+	ErrValidationMax    = errors.New("validation: max failure")
+	ErrValidationLen    = errors.New("validation: len failure")
+	ErrValidationIn     = errors.New("validation: in failure")
+	ErrValidationRegExp = errors.New("validation: regexp failure")
+	ErrVarlidationType  = errors.New("validation: wrong type")
 )
 
 type ValidationError struct {
@@ -258,7 +258,7 @@ func (item ValidatableItem) Max() error {
 	return nil
 }
 
-func doValidate(vItems ValidatableItems, vErr ValidationErrors) ValidationErrors {
+func doValidate(vItems ValidatableItems, vErr ValidationErrors) error {
 	for _, vI := range vItems {
 		if _, ok := reflect.TypeOf(vI).MethodByName(vI.vCmd); ok {
 			if rVal := reflect.ValueOf(vI).MethodByName(vI.vCmd).Call(nil); len(rVal) == 1 {
@@ -273,6 +273,11 @@ func doValidate(vItems ValidatableItems, vErr ValidationErrors) ValidationErrors
 		}
 		vErr = append(vErr, ValidationError{Field: vI.FieldName, Err: ErrValidationNImpl})
 	}
+
+	if len(vErr) == 0 {
+		return nil
+	}
+
 	return vErr
 }
 
@@ -325,11 +330,5 @@ func Validate(v interface{}) error {
 		return nil
 	}
 
-	vErrs := doValidate(parseStruct(v))
-
-	if len(vErrs) == 0 {
-		return nil
-	}
-
-	return vErrs
+	return doValidate(parseStruct(v))
 }
