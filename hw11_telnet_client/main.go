@@ -36,6 +36,7 @@ func main() {
 	go func() {
 		for {
 			if err := tcpclient.Send(); err != nil {
+				fmt.Println(err)
 				stop()
 				return
 			}
@@ -45,6 +46,7 @@ func main() {
 	go func() {
 		for {
 			if err := tcpclient.Receive(); err != nil {
+				fmt.Println(err)
 				stop()
 				return
 			}

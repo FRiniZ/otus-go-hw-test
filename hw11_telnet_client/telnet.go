@@ -22,19 +22,12 @@ func (client *TCPClient) Connect() error {
 }
 
 func (client *TCPClient) Send() error {
-	data, err := client.in.ReadString('\n')
-	if err == nil {
-		_, err = client.conn.Write([]byte(data))
-	}
+	_, err := io.Copy(client.conn, client.in)
 	return err
 }
 
 func (client *TCPClient) Receive() error {
-	data := make([]byte, 1024)
-	n, err := client.conn.Read(data)
-	if err == nil && n > 0 {
-		_, err = client.out.Write(data[:n])
-	}
+	_, err := io.Copy(client.out, client.conn)
 	return err
 }
 
