@@ -2,7 +2,9 @@ package main
 
 import (
 	"bytes"
-	"io/ioutil"
+	"fmt"
+	"io"
+	"io/ioutil" //nolint
 	"net"
 	"sync"
 	"testing"
@@ -58,6 +60,68 @@ func TestTelnetClient(t *testing.T) {
 			n, err = conn.Write([]byte("world\n"))
 			require.NoError(t, err)
 			require.NotEqual(t, 0, n)
+		}()
+
+		wg.Wait()
+	})
+
+	t.Run("timeout", func(t *testing.T) {
+		in := &bytes.Buffer{}
+		out := &bytes.Buffer{}
+
+		timeout, err := time.ParseDuration("1s")
+		require.NoError(t, err)
+
+		client := NewTelnetClient("127.0.0.2:4242", timeout, ioutil.NopCloser(in), out)
+		start := time.Now()
+		require.Error(t, client.Connect(), "expected error message")
+		elapsedTime := time.Since(start)
+		require.LessOrEqual(t, int(elapsedTime.Seconds()), int((time.Second * 1).Seconds()), "timeout wrong")
+
+		timeout, err = time.ParseDuration("3s")
+		require.NoError(t, err)
+		client = NewTelnetClient("127.0.0.2:4242", timeout, ioutil.NopCloser(in), out)
+		start = time.Now()
+		require.Error(t, client.Connect(), "expected error message")
+		elapsedTime = time.Since(start)
+		require.LessOrEqual(t, int(elapsedTime.Seconds()), int((time.Second * 3).Seconds()), "timeout wrong")
+	})
+
+	t.Run("closing host", func(t *testing.T) {
+		l, err := net.Listen("tcp", "127.0.0.1:")
+		require.NoError(t, err)
+		defer func() { require.NoError(t, l.Close()) }()
+
+		var wg sync.WaitGroup
+		wg.Add(2)
+
+		go func() {
+			defer wg.Done()
+
+			in := &bytes.Buffer{}
+			out := &bytes.Buffer{}
+
+			timeout, err := time.ParseDuration("10s")
+			require.NoError(t, err)
+
+			client := NewTelnetClient(l.Addr().String(), timeout, ioutil.NopCloser(in), out)
+			require.NoError(t, client.Connect())
+			defer func() { require.NoError(t, client.Close()) }()
+
+			err = client.Receive()
+			fmt.Println("err:", err)
+			require.Equal(t, err, io.EOF, "expected EOF message")
+		}()
+
+		go func() {
+			defer wg.Done()
+
+			conn, err := l.Accept()
+			require.NoError(t, err)
+			require.NotNil(t, conn)
+			defer func() { require.NoError(t, conn.Close()) }()
+
+			time.Sleep(time.Second * 3)
 		}()
 
 		wg.Wait()
