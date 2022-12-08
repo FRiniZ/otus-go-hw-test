@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"io/ioutil" //nolint
 	"net"
 	"sync"
 	"testing"
@@ -31,7 +30,7 @@ func TestTelnetClient(t *testing.T) {
 			timeout, err := time.ParseDuration("10s")
 			require.NoError(t, err)
 
-			client := NewTelnetClient(l.Addr().String(), timeout, ioutil.NopCloser(in), out)
+			client := NewTelnetClient(l.Addr().String(), timeout, io.NopCloser(in), out)
 			require.NoError(t, client.Connect())
 			defer func() { require.NoError(t, client.Close()) }()
 
@@ -72,7 +71,7 @@ func TestTelnetClient(t *testing.T) {
 		timeout, err := time.ParseDuration("1s")
 		require.NoError(t, err)
 
-		client := NewTelnetClient("127.0.0.2:4242", timeout, ioutil.NopCloser(in), out)
+		client := NewTelnetClient("127.0.0.2:4242", timeout, io.NopCloser(in), out)
 		start := time.Now()
 		require.Error(t, client.Connect(), "expected error message")
 		elapsedTime := time.Since(start)
@@ -80,7 +79,7 @@ func TestTelnetClient(t *testing.T) {
 
 		timeout, err = time.ParseDuration("3s")
 		require.NoError(t, err)
-		client = NewTelnetClient("127.0.0.2:4242", timeout, ioutil.NopCloser(in), out)
+		client = NewTelnetClient("127.0.0.2:4242", timeout, io.NopCloser(in), out)
 		start = time.Now()
 		require.Error(t, client.Connect(), "expected error message")
 		elapsedTime = time.Since(start)
@@ -104,7 +103,7 @@ func TestTelnetClient(t *testing.T) {
 			timeout, err := time.ParseDuration("10s")
 			require.NoError(t, err)
 
-			client := NewTelnetClient(l.Addr().String(), timeout, ioutil.NopCloser(in), out)
+			client := NewTelnetClient(l.Addr().String(), timeout, io.NopCloser(in), out)
 			require.NoError(t, client.Connect())
 			defer func() { require.NoError(t, client.Close()) }()
 
