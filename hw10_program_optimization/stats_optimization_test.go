@@ -18,28 +18,6 @@ const (
 	timeLimit = 300 * time.Millisecond
 )
 
-/*
-func BenchmarkGetDomainStat_Time_And_Memory(b *testing.B) {
-	b.Helper()
-	b.StopTimer()
-
-	r, err := zip.OpenReader("testdata/users.dat.zip")
-	if err != nil {
-		return
-	}
-	defer r.Close()
-
-	data, err := r.File[0].Open()
-	if err != nil {
-		return
-	}
-
-	b.StartTimer()
-	_, err = GetDomainStat(data, "biz")
-	b.StopTimer()
-}
-*/
-
 // go test -v -count=1 -timeout=30s -tags bench .
 func TestGetDomainStat_Time_And_Memory(t *testing.T) {
 	bench := func(b *testing.B) {

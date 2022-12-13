@@ -47,11 +47,29 @@ const json_data = `
 `
 
 func BenchmarkGetDomainStat_Time_And_Memory(b *testing.B) {
-	r := strings.NewReader(json_data)
 
-	for i := 0; i < b.N; i++ {
-		GetDomainStat(r, "com")
-		GetDomainStat(r, "gov")
-		GetDomainStat(r, "edu")
+	bench_com := func(b *testing.B) {
+		r := strings.NewReader(json_data)
+		for i := 0; i < b.N; i++ {
+			GetDomainStat(r, "com")
+		}
 	}
+
+	bench_gov := func(b *testing.B) {
+		r := strings.NewReader(json_data)
+		for i := 0; i < b.N; i++ {
+			GetDomainStat(r, "gov")
+		}
+	}
+
+	bench_edu := func(b *testing.B) {
+		r := strings.NewReader(json_data)
+		for i := 0; i < b.N; i++ {
+			GetDomainStat(r, "edu")
+		}
+	}
+
+	b.Run("com", bench_com)
+	b.Run("gov", bench_gov)
+	b.Run("edu", bench_edu)
 }
