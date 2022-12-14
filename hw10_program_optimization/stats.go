@@ -13,7 +13,7 @@ type User struct {
 	ID       int    `json:"-"`
 	Name     string `json:"-"`
 	Username string `json:"-"`
-	Email    string `json:"Email,nocopy"`
+	Email    string `json:"Email,nocopy"` //nolint
 	Phone    string `json:"-"`
 	Password string `json:"-"`
 	Address  string `json:"-"`
@@ -24,7 +24,6 @@ type DomainStat map[string]int
 const nWorkers = 10
 
 func GetDomainStat(r io.Reader, domain string) (DomainStat, error) {
-
 	result := make(DomainStat)
 	ch := make(chan []byte, 1000)
 
