@@ -1,12 +1,12 @@
-/*
 package hw10programoptimization
 
 import (
 	"bufio"
-	"encoding/json"
 	"io"
 	"strings"
 	"sync"
+
+	easyjson "github.com/mailru/easyjson"
 )
 
 type User struct {
@@ -20,30 +20,28 @@ type User struct {
 }
 
 type DomainStat map[string]int
-type PtrString *string
+
+const nWorkers = 10
 
 func GetDomainStat(r io.Reader, domain string) (DomainStat, error) {
 
 	result := make(DomainStat)
-	ch := make(chan string, 10)
-	wg := &sync.WaitGroup{}
-	lock := &sync.Mutex{}
+	ch := make(chan []byte, 1000)
 
-	for i := 0; i < 10; i++ {
+	wg := sync.WaitGroup{}
+	lock := sync.Mutex{}
+
+	for i := 0; i < nWorkers; i++ {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
 			user := &User{}
-			for {
-				s, ok := <-ch
-				if !ok {
-					break
-				}
-				if err := json.Unmarshal([]byte(s), user); err == nil {
-
+			for b := range ch {
+				if err := easyjson.Unmarshal(b, user); err == nil {
 					if strings.HasSuffix(user.Email, domain) {
+						key := strings.ToLower(strings.SplitN(user.Email, "@", 2)[1])
 						lock.Lock()
-						result[strings.ToLower(strings.SplitN(user.Email, "@", 2)[1])]++
+						result[key]++
 						lock.Unlock()
 					}
 				}
@@ -52,8 +50,12 @@ func GetDomainStat(r io.Reader, domain string) (DomainStat, error) {
 	}
 
 	reader := bufio.NewScanner(r)
+
 	for reader.Scan() {
-		ch <- reader.Text()
+		b := reader.Bytes()
+		bc := make([]byte, len(b))
+		copy(bc, b)
+		ch <- bc
 	}
 
 	if err := reader.Err(); err != nil {
@@ -62,47 +64,6 @@ func GetDomainStat(r io.Reader, domain string) (DomainStat, error) {
 
 	close(ch)
 	wg.Wait()
-
-	return result, nil
-}
-*/
-
-package hw10programoptimization
-
-import (
-	"encoding/json"
-	"io"
-	"strings"
-)
-
-//easyjson:json
-type User struct {
-	ID       int    `json:"-"`
-	Name     string `json:"-"`
-	Username string `json:"-"`
-	Email    string `json:"Email,nocopy"` //nolint
-	Phone    string `json:"-"`
-	Password string `json:"-"`
-	Address  string `json:"-"`
-}
-
-type DomainStat map[string]int
-
-func GetDomainStat(r io.Reader, domain string) (DomainStat, error) {
-	user := &User{}
-	result := make(DomainStat)
-
-	decoder := json.NewDecoder(r)
-
-	for decoder.More() {
-		err := decoder.Decode(user)
-		if err != nil {
-			return nil, err
-		}
-		if strings.HasSuffix(user.Email, domain) {
-			result[strings.ToLower(strings.SplitN(user.Email, "@", 2)[1])]++
-		}
-	}
 
 	return result, nil
 }
