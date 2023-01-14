@@ -5,7 +5,7 @@ import (
 	"time"
 
 	storage "github.com/FRiniZ/otus-go-hw-test/hw12_13_14_15_calendar/internal/storage"
-	"github.com/go-faker/faker/v4"
+	faker "github.com/go-faker/faker/v4"
 	"github.com/stretchr/testify/require"
 )
 
