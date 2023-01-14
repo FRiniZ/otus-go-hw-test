@@ -31,4 +31,21 @@ install-lint-deps:
 lint: install-lint-deps
 	golangci-lint run ./...
 
-.PHONY: build run build-img run-img version test lint
+
+run_postgres:
+	docker run -d --rm --name postgres -e POSTGRES_USER=root -e POSTGRES_PASSWORD=secretkey -e PGDATA=/var/lib/postgresql/data/pgdata -v psqldata:/var/lib/postgresql/data -p 5432:5432 postgres
+
+create_db:
+	docker exec -it postgres createdb --username=root --owner=root calendar
+
+drop_db:
+	docker exec -it postgres dropdb calendar
+
+migrate_up:
+	migrate -path migrations/db -database "postgresql://root:secretkey@localhost:5432/calendar?sslmode=disable" -verbose up
+
+migrate_down:
+	migrate -path migrations/db -database "postgresql://root:secretkey@localhost:5432/calendar?sslmode=disable" -verbose down
+
+.PHONY: build run build-img run-img version test lint run_postgres createdb dropdb
+
