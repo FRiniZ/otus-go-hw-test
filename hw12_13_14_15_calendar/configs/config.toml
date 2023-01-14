@@ -1,5 +1,15 @@
 [logger]
-level = "INFO"
+level = "DEBUG"
+
+[http]
+port = "8089"
+host = "localhost"
+
+[storage]
+#db = "in-memory" 
+db = "sql"
+dsn = "postgresql://root:secretkey@localhost:5432/calendar?sslmode=disable"
+
 
 # TODO
 # ...
