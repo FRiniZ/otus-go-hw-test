@@ -10,11 +10,11 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/FRiniZ/otus-go-hw-test/hw12_13_14_15_calendar/internal/app"
-	"github.com/FRiniZ/otus-go-hw-test/hw12_13_14_15_calendar/internal/logger"
-	internalhttp "github.com/FRiniZ/otus-go-hw-test/hw12_13_14_15_calendar/internal/server/http"
-	memorystorage "github.com/FRiniZ/otus-go-hw-test/hw12_13_14_15_calendar/internal/storage/memory"
-	sqlstorage "github.com/FRiniZ/otus-go-hw-test/hw12_13_14_15_calendar/internal/storage/sql"
+	"github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/app"
+	"github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/logger"
+	internalhttp "github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/server/http"
+	memorystorage "github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/storage/memory"
+	sqlstorage "github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/storage/sql"
 )
 
 var configFile string

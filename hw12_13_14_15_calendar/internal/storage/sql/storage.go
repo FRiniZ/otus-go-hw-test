@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/FRiniZ/otus-go-hw-test/hw12_13_14_15_calendar/internal/storage"
+	"github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/storage"
 	_ "github.com/jackc/pgx/stdlib" // needs for init
 )
 
