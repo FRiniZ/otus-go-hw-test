@@ -33,9 +33,7 @@ type Logger interface {
 	Debugf(format string, a ...interface{})
 }
 
-type Application interface {
-	// TODO
-}
+type Application interface{}
 
 func NewServer(logger Logger, app Application, conf ServerConf) *Server {
 	return &Server{log: logger, app: app, conf: conf}

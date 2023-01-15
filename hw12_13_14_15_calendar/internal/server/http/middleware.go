@@ -4,9 +4,7 @@ import (
 	"net/http"
 )
 
-type MiddlewareLogger struct {
-	// TODO
-}
+type MiddlewareLogger struct{}
 
 func NewMiddlewareLogger() *MiddlewareLogger {
 	return &MiddlewareLogger{}

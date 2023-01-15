@@ -11,8 +11,6 @@ import (
 	"time"
 )
 
-// stolen idea from https://github.com/miolini/datacounter/blob/master/response_writer.go
-
 type ResponseWriterCounter struct {
 	http.ResponseWriter
 	r          *http.Request
@@ -68,11 +66,6 @@ func (rwl *ResponseWriterCounter) String() string {
 	if err != nil {
 		return fmt.Sprintf("userip: %q is not IP\n", rwl.r.RemoteAddr)
 	}
-
-	//	userIP := net.ParseIP(ip)
-	//	if userIP == nil {
-	//		return fmt.Sprintf("userip: %q is not IP:port", rwl.r.RemoteAddr)
-	//	}
 
 	b.WriteString(ip)
 	b.WriteString(" ")

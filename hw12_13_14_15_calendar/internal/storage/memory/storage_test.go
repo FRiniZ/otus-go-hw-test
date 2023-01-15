@@ -29,9 +29,10 @@ func TestStorage(t *testing.T) {
 		helperEvent(&events[i], i)
 	}
 
-	t.Parallel()
 	for i := 0; i < num; i++ {
 		t.Run("insert_lookup_update_delete_parallel", func(t *testing.T) {
+			i := i
+			t.Parallel()
 			ev := events[i]
 			err := db.InsertEvent(context.Background(), &ev)
 			require.Equal(t, nil, err)

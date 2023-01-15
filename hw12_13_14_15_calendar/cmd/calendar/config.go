@@ -1,7 +1,6 @@
 package main
 
 import (
-	"io"
 	"os"
 
 	"github.com/BurntSushi/toml"
@@ -31,22 +30,10 @@ func NewConfig() Config {
 }
 
 func (c *Config) LoadFileTOML(filename string) error {
-	file, err := os.Open(filename)
+	filedata, err := os.ReadFile(filename)
 	if err != nil {
 		return err
 	}
 
-	defer file.Close()
-
-	filedata, err := io.ReadAll(file)
-	if err != nil {
-		return err
-	}
-
-	err = toml.Unmarshal(filedata, c)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return toml.Unmarshal(filedata, c)
 }
