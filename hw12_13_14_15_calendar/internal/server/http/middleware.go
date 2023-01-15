@@ -5,19 +5,18 @@ import (
 )
 
 type MiddlewareLogger struct {
-	Logger
+	// TODO
 }
 
-func NewMiddlewareLogger(log Logger) *MiddlewareLogger {
-	return &MiddlewareLogger{
-		Logger: log,
-	}
+func NewMiddlewareLogger() *MiddlewareLogger {
+	return &MiddlewareLogger{}
 }
 
 func (m *MiddlewareLogger) loggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		l := r.Context().Value(KeyLoggerID).(Logger)
 		rwc := NewResponseWriterCounter(w, r)
 		next.ServeHTTP(rwc, r)
-		m.Debugf(rwc.String())
+		l.Debugf(rwc.String())
 	})
 }

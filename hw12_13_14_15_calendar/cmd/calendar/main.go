@@ -2,9 +2,11 @@ package main
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"fmt"
-	"net"
+	"log"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -35,13 +37,17 @@ func main() {
 
 	config := NewConfig()
 	if err := config.LoadFileTOML(configFile); err != nil {
-		fmt.Println("error:", err)
-		return
+		fmt.Fprintf(os.Stderr, "Can't load config file:%v error: %v\n", configFile, err)
+		os.Exit(1)
 	}
 
 	fmt.Println("Config:", config)
 
-	logg := logger.New(config.Logger.Level, os.Stdin, nil)
+	logg, err := logger.New(config.Logger.Level, os.Stdin, nil)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Can't allocate logger:%v\n", err)
+		os.Exit(1)
+	}
 
 	ctx, cancel := signal.NotifyContext(context.Background(),
 		syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
@@ -55,31 +61,36 @@ func main() {
 		db := sqlstorage.New(config.Storage.DSN)
 		err := db.Connect(ctx)
 		if err != nil {
-			panic(err)
+			log.Fatalf("Can't connect to storage:%v\n", err) //nolint
 		}
 		idb = db
 	}
 
 	calendar := app.New(logg, idb)
 
-	server := internalhttp.NewServer(logg, calendar)
+	server := internalhttp.NewServer(logg, calendar, config.HTTPServer)
 
 	go func() {
 		<-ctx.Done()
 
-		ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
+		ctx, cancel := context.WithTimeout(ctx, time.Second*5)
 		defer cancel()
 
 		if err := server.Stop(ctx); err != nil {
-			logg.Errorf("failed to stop http server: " + err.Error())
+			logg.Errorf("failed to stop http server:%v\n", err)
+		}
+		if err := idb.Close(ctx); err != nil {
+			logg.Errorf("failed to close db:%v\n", err)
 		}
 	}()
 
 	logg.Infof("calendar is running...\n")
-	addr := net.JoinHostPort(config.HTTPServer.Host, config.HTTPServer.Port)
-	if err := server.Start(ctx, addr); err != nil {
-		logg.Errorf("failed to start http server: %v\n", err.Error())
-		cancel()
-		os.Exit(1) //nolint:gocritic
+
+	if err := server.Start(ctx); err != nil {
+		if !errors.Is(err, http.ErrServerClosed) {
+			logg.Errorf("failed to start http server: %v\n", err.Error())
+			cancel()
+			os.Exit(1)
+		}
 	}
 }

@@ -1,8 +1,10 @@
 package memorystorage
 
 import (
+	"context"
 	"sync"
 
+	"github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/app"
 	"github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/storage"
 )
 
@@ -25,8 +27,16 @@ func New() *Storage {
 	return &Storage{data: make(mapEvent), mu: sync.RWMutex{}}
 }
 
-func (s *Storage) InsertEvent(e *storage.Event) error {
-	if err := storage.CheckingEvent(e); err != nil {
+func (s *Storage) Connect(ctx context.Context) error {
+	return nil
+}
+
+func (s *Storage) Close(ctx context.Context) error {
+	return nil
+}
+
+func (s *Storage) InsertEvent(ctx context.Context, e *storage.Event) error {
+	if err := app.CheckingEvent(e); err != nil {
 		return err
 	}
 	s.mu.Lock()
@@ -36,26 +46,29 @@ func (s *Storage) InsertEvent(e *storage.Event) error {
 	return nil
 }
 
-func (s *Storage) UpdateEvent(e *storage.Event) error {
+func (s *Storage) UpdateEvent(ctx context.Context, e *storage.Event) error {
+	if err := app.CheckingEvent(e); err != nil {
+		return err
+	}
+
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if _, ok := s.data[e.ID]; ok {
-		s.data[e.ID] = e
-	} else {
-		return nil
+	if _, ok := s.data[e.ID]; !ok {
+		return app.ErrEventNotFound
 	}
+	s.data[e.ID] = e
 
 	return nil
 }
 
-func (s *Storage) DeleteEvent(e *storage.Event) error {
+func (s *Storage) DeleteEvent(ctx context.Context, e *storage.Event) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	delete(s.data, e.ID)
 	return nil
 }
 
-func (s *Storage) ListEvents(userID int64) ([]storage.Event, error) {
+func (s *Storage) ListEvents(ctx context.Context, userID int64) ([]storage.Event, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	sliceE := []storage.Event{}
@@ -68,7 +81,7 @@ func (s *Storage) ListEvents(userID int64) ([]storage.Event, error) {
 	return sliceE, nil
 }
 
-func (s *Storage) LookupEvent(eID int64) (event storage.Event, err error) {
+func (s *Storage) LookupEvent(ctx context.Context, eID int64) (event storage.Event, err error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	if e, ok := s.data[eID]; ok {

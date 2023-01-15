@@ -25,9 +25,7 @@ func NewResponseWriterCounter(rw http.ResponseWriter, r *http.Request) *Response
 	return &ResponseWriterCounter{
 		ResponseWriter: rw,
 		r:              r,
-		count:          0,
 		started:        time.Now(),
-		statusCode:     0,
 	}
 }
 

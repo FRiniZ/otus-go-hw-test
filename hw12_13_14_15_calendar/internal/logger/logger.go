@@ -2,18 +2,22 @@ package logger
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
+	"os"
 	"strings"
 	"sync"
 )
 
 const (
-	L0 = iota // Error
-	L1        // Warn
-	L2        // Info
-	L3        // Debug
+	LevelError = iota
+	LevelWarn
+	LevelInfo
+	LevelDebug
 )
+
+var ErrLogLevel = errors.New("unrecognized log_level")
 
 type Logger struct {
 	logLevel int
@@ -22,18 +26,18 @@ type Logger struct {
 	cancel   context.CancelFunc
 }
 
-func New(level string, out io.Writer, cancel context.CancelFunc) *Logger {
+func New(level string, out io.Writer, cancel context.CancelFunc) (*Logger, error) {
 	switch strings.ToUpper(level) {
 	case "ERROR":
-		return &Logger{logLevel: L0, mu: &sync.Mutex{}, out: out, cancel: cancel}
+		return &Logger{logLevel: LevelError, mu: &sync.Mutex{}, out: out, cancel: cancel}, nil
 	case "WARN":
-		return &Logger{logLevel: L1, mu: &sync.Mutex{}, out: out, cancel: cancel}
+		return &Logger{logLevel: LevelWarn, mu: &sync.Mutex{}, out: out, cancel: cancel}, nil
 	case "INFO":
-		return &Logger{logLevel: L2, mu: &sync.Mutex{}, out: out, cancel: cancel}
+		return &Logger{logLevel: LevelInfo, mu: &sync.Mutex{}, out: out, cancel: cancel}, nil
 	case "DEBUG":
-		return &Logger{logLevel: L3, mu: &sync.Mutex{}, out: out, cancel: cancel}
+		return &Logger{logLevel: LevelDebug, mu: &sync.Mutex{}, out: out, cancel: cancel}, nil
 	default:
-		panic("unrecognized log_level")
+		return nil, ErrLogLevel
 	}
 }
 
@@ -42,35 +46,36 @@ func (l *Logger) printf(format string, a ...interface{}) {
 	_, err := fmt.Fprintf(l.out, format, a...)
 	l.mu.Unlock()
 	if err != nil {
-		l.Panicf("Panic: %v", err)
+		fmt.Fprintf(os.Stderr, "Fatal: Fprintf : %v", err)
+		os.Exit(1)
 	}
 }
 
-func (l *Logger) Panicf(format string, a ...interface{}) {
-	l.printf("PANIC:"+format, a)
-	l.cancel()
+func (l *Logger) Fatalf(format string, a ...interface{}) {
+	l.printf("Fatal:"+format, a)
+	os.Exit(1)
 }
 
 func (l *Logger) Errorf(format string, a ...interface{}) {
-	if l.logLevel >= L0 {
+	if l.logLevel >= LevelError {
 		l.printf("ERROR:"+format, a...)
 	}
 }
 
 func (l *Logger) Warningf(format string, a ...interface{}) {
-	if l.logLevel >= L1 {
+	if l.logLevel >= LevelWarn {
 		l.printf("WARN:"+format, a...)
 	}
 }
 
 func (l *Logger) Infof(format string, a ...interface{}) {
-	if l.logLevel >= L2 {
+	if l.logLevel >= LevelInfo {
 		l.printf("INFO:"+format, a...)
 	}
 }
 
 func (l *Logger) Debugf(format string, a ...interface{}) {
-	if l.logLevel >= L3 {
+	if l.logLevel >= LevelDebug {
 		l.printf("DEBUG:"+format, a...)
 	}
 }

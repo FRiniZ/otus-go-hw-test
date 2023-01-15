@@ -3,6 +3,8 @@ package logger
 import (
 	"bytes"
 	"fmt"
+	"os"
+	"os/exec"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -60,12 +62,15 @@ func TestLogger(t *testing.T) {
 		},
 	}
 
+	t.Parallel()
 	for _, tc := range tests {
 		t.Run(fmt.Sprintf("case %s", tc.name), func(t *testing.T) {
 			var b bytes.Buffer
 			tc := tc
-			t.Parallel()
-			l := New(tc.level, &b, nil)
+			l, err := New(tc.level, &b, nil)
+			if err != nil {
+				require.Fail(t, "Can't make object Logger", err)
+			}
 
 			switch tc.funcName {
 			case "Error":
@@ -81,4 +86,31 @@ func TestLogger(t *testing.T) {
 			require.Equal(t, tc.expectedMsg, b.String(), "error output message")
 		})
 	}
+
+	t.Run("wrong_log_level", func(t *testing.T) {
+		var b bytes.Buffer
+		_, err := New("", &b, nil)
+		require.ErrorIs(t, err, ErrLogLevel, "expected err:%v", ErrLogLevel)
+	})
+}
+
+func TestFatalf(t *testing.T) {
+	if os.Getenv("BE_CRASHER") == "1" {
+		var b bytes.Buffer
+		l, err := New("DEBUG", &b, nil)
+		if err != nil {
+			require.Fail(t, "Can't make object Logger", err)
+		}
+
+		l.Fatalf("Something bad has happened")
+		return
+	}
+	cmd := exec.Command(os.Args[0], "-test.run=TestFatalf")
+	cmd.Env = append(os.Environ(), "BE_CRASHER=1")
+	err := cmd.Run()
+
+	if e, ok := err.(*exec.ExitError); ok && !e.Success() { //nolint
+		return
+	}
+	t.Fatalf("process ran with err %v, want exit status 1", err)
 }

@@ -5,20 +5,16 @@ import (
 	"os"
 
 	"github.com/BurntSushi/toml"
+	internalhttp "github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/server/http"
 )
 
 // При желании конфигурацию можно вынести в internal/config.
 // Организация конфига в main принуждает нас сужать API компонентов, использовать
 // при их конструировании только необходимые параметры, а также уменьшает вероятность циклической зависимости.
 type Config struct {
-	HTTPServer HTTPServerConf `toml:"http"`
-	Storage    StorageConf    `toml:"storage"`
-	Logger     LoggerConf     `toml:"logger"`
-}
-
-type HTTPServerConf struct {
-	Host string `toml:"host"`
-	Port string `toml:"port"`
+	HTTPServer internalhttp.ServerConf `toml:"http"`
+	Storage    StorageConf             `toml:"storage"`
+	Logger     LoggerConf              `toml:"logger"`
 }
 
 type LoggerConf struct {
