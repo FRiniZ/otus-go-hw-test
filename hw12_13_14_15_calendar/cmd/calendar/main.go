@@ -73,13 +73,13 @@ func main() {
 	go func() {
 		<-ctx.Done()
 
-		ctxTO, cancel := context.WithTimeout(context.Background(), time.Second*3)
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
 		defer cancel()
 
-		if err := server.Stop(ctxTO); err != nil {
+		if err := server.Stop(ctx); err != nil {
 			logg.Errorf("failed to stop http server:%v\n", err)
 		}
-		if err := idb.Close(ctxTO); err != nil {
+		if err := idb.Close(ctx); err != nil {
 			logg.Errorf("failed to close db:%v\n", err)
 		}
 	}()
