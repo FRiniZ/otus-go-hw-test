@@ -149,7 +149,6 @@ func (s Service) LookupEventV1(ctx context.Context, req *api.RequestV1) (*api.Re
 	if err != nil {
 		return &api.ReplyV1{}, err
 	}
-
 	rep := api.ReplyV1{}
 	rep.Event = append(rep.Event, &api.Event{
 		ID:          &event.ID,
