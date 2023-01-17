@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/DATA-DOG/go-sqlmock"
+	sqlmock "github.com/DATA-DOG/go-sqlmock"
 	"github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/storage"
 	"github.com/stretchr/testify/require"
 )
