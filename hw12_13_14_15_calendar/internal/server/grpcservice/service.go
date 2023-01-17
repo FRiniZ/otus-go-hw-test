@@ -3,9 +3,21 @@ package grpcservice
 import (
 	context "context"
 	"net"
+	"strings"
+	"time"
 
 	api "github.com/FRiniZ/otus-go-hw-test/hw12_calendar/api/stub"
+	"github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/storage"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/peer"
+	"google.golang.org/protobuf/types/known/timestamppb"
+)
+
+type ctxKeyID int
+
+const (
+	KeyMethodID ctxKeyID = iota
 )
 
 type Conf struct {
@@ -21,43 +33,177 @@ type Logger interface {
 	Debugf(format string, a ...interface{})
 }
 
-type GRPCService struct {
+type Application interface {
+	InsertEvent(context.Context, *storage.Event) error
+	UpdateEvent(context.Context, *storage.Event) error
+	DeleteEvent(context.Context, *storage.Event) error
+	LookupEvent(context.Context, int64) (storage.Event, error)
+	ListEvents(context.Context, int64) ([]storage.Event, error)
+}
+
+type Service struct {
 	log     Logger
 	conf    Conf
+	app     Application
 	basesrv *grpc.Server
 	api.UnimplementedCalendarServer
 }
 
 // DeleteEventV1 implements api.CalendarServer.
-func (GRPCService) DeleteEventV1(context.Context, *api.RequestV1) (*api.ReplyV1, error) {
+func (Service) DeleteEventV1(context.Context, *api.RequestV1) (*api.ReplyV1, error) {
 	panic("unimplemented")
 }
 
-// InserEventV1 implements api.CalendarServer.
-func (GRPCService) InserEventV1(context.Context, *api.RequestV1) (*api.ReplyV1, error) {
-	panic("unimplemented")
+func (s *Service) Log(ctx context.Context) {
+	var b strings.Builder
+	ip, _ := peer.FromContext(ctx)
+	method := ctx.Value(KeyMethodID).(string)
+	md, ok := metadata.FromIncomingContext(ctx)
+	userAgent := "unknown"
+
+	if ok {
+		userAgent = md["user-agent"][0]
+	}
+
+	b.WriteString(ip.Addr.String())
+	b.WriteString(" ")
+	b.WriteString(time.Now().Format("02/Jan/2006:15:04:05 -0700"))
+	b.WriteString(" ")
+	b.WriteString(method)
+	b.WriteString(" ")
+	b.WriteString(userAgent)
+	b.WriteString("\"\n")
+
+	s.log.Infof(b.String())
+}
+
+// InsertEventV1 implements api.CalendarServer.
+func (s Service) InsertEventV1(ctx context.Context, req *api.RequestV1) (*api.ReplyV1, error) {
+	defer s.Log(ctx)
+
+	event := storage.Event{}
+
+	event.ID = *req.Event.ID
+	event.UserID = *req.Event.UserID
+	event.Title = *req.Event.Title
+	event.Description = *req.Event.Description
+	if err := req.Event.OnTime.CheckValid(); err == nil {
+		event.OnTime = req.Event.OnTime.AsTime()
+	}
+	if err := req.Event.OffTime.CheckValid(); err == nil {
+		event.OffTime = req.Event.OffTime.AsTime()
+	}
+	if err := req.Event.NotifyTime.CheckValid(); err == nil {
+		event.NotifyTime = req.Event.NotifyTime.AsTime()
+	}
+
+	if err := s.app.InsertEvent(ctx, &event); err != nil {
+		return &api.ReplyV1{}, err
+	}
+	return &api.ReplyV1{
+		Event: []*api.Event{
+			{
+				ID:          &event.ID,
+				UserID:      &event.UserID,
+				Title:       &event.Title,
+				Description: &event.Description,
+				OnTime:      timestamppb.New(event.OnTime),
+				OffTime:     timestamppb.New(event.OffTime),
+				NotifyTime:  timestamppb.New(event.NotifyTime),
+			},
+		},
+	}, nil
 }
 
 // ListEventsV1 implements api.CalendarServer.
-func (GRPCService) ListEventsV1(context.Context, *api.RequestV1) (*api.ReplyV1, error) {
-	panic("unimplemented")
+func (s Service) ListEventsV1(ctx context.Context, req *api.RequestV1) (*api.ReplyV1, error) {
+	defer s.Log(ctx)
+	userID := *req.Event.UserID
+	events, err := s.app.ListEvents(ctx, userID)
+	if err != nil {
+		return &api.ReplyV1{}, err
+	}
+
+	rep := api.ReplyV1{}
+	rep.Event = make([]*api.Event, len(events))
+	for i, event := range events {
+		event := event
+		rep.Event[i] = &api.Event{
+			ID:          &event.ID,
+			UserID:      &event.UserID,
+			Title:       &event.Title,
+			Description: &event.Description,
+			OnTime:      timestamppb.New(event.OnTime),
+			OffTime:     timestamppb.New(event.OffTime),
+			NotifyTime:  timestamppb.New(event.NotifyTime),
+		}
+	}
+	return &rep, nil
 }
 
 // LookupEventV1 implements api.CalendarServer.
-func (GRPCService) LookupEventV1(context.Context, *api.RequestV1) (*api.ReplyV1, error) {
-	panic("unimplemented")
+func (s Service) LookupEventV1(ctx context.Context, req *api.RequestV1) (*api.ReplyV1, error) {
+	defer s.Log(ctx)
+	eventID := *req.Event.ID
+	event, err := s.app.LookupEvent(ctx, eventID)
+	if err != nil {
+		return &api.ReplyV1{}, err
+	}
+
+	rep := api.ReplyV1{}
+	rep.Event = append(rep.Event, &api.Event{
+		ID:          &event.ID,
+		UserID:      &event.UserID,
+		Title:       &event.Title,
+		Description: &event.Description,
+		OnTime:      timestamppb.New(event.OnTime),
+		OffTime:     timestamppb.New(event.OffTime),
+		NotifyTime:  timestamppb.New(event.NotifyTime),
+	})
+	return &rep, nil
 }
 
 // UpdateEventV1 implements api.CalendarServer.
-func (GRPCService) UpdateEventV1(context.Context, *api.RequestV1) (*api.ReplyV1, error) {
-	panic("unimplemented")
+func (s Service) UpdateEventV1(ctx context.Context, req *api.RequestV1) (*api.ReplyV1, error) {
+	defer s.Log(ctx)
+	event := storage.Event{}
+
+	event.ID = *req.Event.ID
+	event.UserID = *req.Event.UserID
+	event.Title = *req.Event.Title
+	event.Description = *req.Event.Description
+	if err := req.Event.OnTime.CheckValid(); err == nil {
+		event.OnTime = req.Event.OnTime.AsTime()
+	}
+	if err := req.Event.OffTime.CheckValid(); err == nil {
+		event.OffTime = req.Event.OffTime.AsTime()
+	}
+	if err := req.Event.NotifyTime.CheckValid(); err == nil {
+		event.NotifyTime = req.Event.NotifyTime.AsTime()
+	}
+
+	if err := s.app.UpdateEvent(ctx, &event); err != nil {
+		return &api.ReplyV1{}, err
+	}
+
+	rep := api.ReplyV1{}
+	rep.Event = append(rep.Event, &api.Event{
+		ID:          &event.ID,
+		UserID:      &event.UserID,
+		Title:       &event.Title,
+		Description: &event.Description,
+		OnTime:      timestamppb.New(event.OnTime),
+		OffTime:     timestamppb.New(event.OffTime),
+		NotifyTime:  timestamppb.New(event.NotifyTime),
+	})
+	return &rep, nil
 }
 
-func NewGRPCService(log Logger, conf Conf) *GRPCService {
-	return &GRPCService{conf: conf, log: log, basesrv: grpc.NewServer()}
+func New(log Logger, app Application, conf Conf, basesrv *grpc.Server) *Service {
+	return &Service{app: app, conf: conf, log: log, basesrv: basesrv}
 }
 
-func (s *GRPCService) Start(context.Context) error {
+func (s *Service) Start(context.Context) error {
 	addr := net.JoinHostPort(s.conf.Host, s.conf.Port)
 	dial, err := net.Listen("tcp", addr)
 	if err != nil {
@@ -74,8 +220,19 @@ func (s *GRPCService) Start(context.Context) error {
 	return nil
 }
 
-func (s *GRPCService) Stop(context.Context) error {
+func (s *Service) Stop(context.Context) error {
 	s.basesrv.GracefulStop()
 	s.log.Infof("GRPC-server shutdown\n")
 	return grpc.ErrServerStopped
+}
+
+func UnaryLoggerEnricherInterceptor(
+	ctx context.Context,
+	req interface{},
+	info *grpc.UnaryServerInfo,
+	handler grpc.UnaryHandler) (interface{}, error) { //nolint
+	ctxV := context.WithValue(ctx, KeyMethodID, info.FullMethod)
+	// Calls the handler
+	h, err := handler(ctxV, req)
+	return h, err
 }

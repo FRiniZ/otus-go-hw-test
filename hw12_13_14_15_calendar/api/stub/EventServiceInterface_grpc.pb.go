@@ -22,7 +22,7 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type CalendarClient interface {
-	InserEventV1(ctx context.Context, in *RequestV1, opts ...grpc.CallOption) (*ReplyV1, error)
+	InsertEventV1(ctx context.Context, in *RequestV1, opts ...grpc.CallOption) (*ReplyV1, error)
 	UpdateEventV1(ctx context.Context, in *RequestV1, opts ...grpc.CallOption) (*ReplyV1, error)
 	DeleteEventV1(ctx context.Context, in *RequestV1, opts ...grpc.CallOption) (*ReplyV1, error)
 	LookupEventV1(ctx context.Context, in *RequestV1, opts ...grpc.CallOption) (*ReplyV1, error)
@@ -37,9 +37,9 @@ func NewCalendarClient(cc grpc.ClientConnInterface) CalendarClient {
 	return &calendarClient{cc}
 }
 
-func (c *calendarClient) InserEventV1(ctx context.Context, in *RequestV1, opts ...grpc.CallOption) (*ReplyV1, error) {
+func (c *calendarClient) InsertEventV1(ctx context.Context, in *RequestV1, opts ...grpc.CallOption) (*ReplyV1, error) {
 	out := new(ReplyV1)
-	err := c.cc.Invoke(ctx, "/api.Calendar/InserEventV1", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/api.Calendar/InsertEventV1", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -86,7 +86,7 @@ func (c *calendarClient) ListEventsV1(ctx context.Context, in *RequestV1, opts .
 // All implementations must embed UnimplementedCalendarServer
 // for forward compatibility
 type CalendarServer interface {
-	InserEventV1(context.Context, *RequestV1) (*ReplyV1, error)
+	InsertEventV1(context.Context, *RequestV1) (*ReplyV1, error)
 	UpdateEventV1(context.Context, *RequestV1) (*ReplyV1, error)
 	DeleteEventV1(context.Context, *RequestV1) (*ReplyV1, error)
 	LookupEventV1(context.Context, *RequestV1) (*ReplyV1, error)
@@ -98,8 +98,8 @@ type CalendarServer interface {
 type UnimplementedCalendarServer struct {
 }
 
-func (UnimplementedCalendarServer) InserEventV1(context.Context, *RequestV1) (*ReplyV1, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method InserEventV1 not implemented")
+func (UnimplementedCalendarServer) InsertEventV1(context.Context, *RequestV1) (*ReplyV1, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method InsertEventV1 not implemented")
 }
 func (UnimplementedCalendarServer) UpdateEventV1(context.Context, *RequestV1) (*ReplyV1, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdateEventV1 not implemented")
@@ -126,20 +126,20 @@ func RegisterCalendarServer(s grpc.ServiceRegistrar, srv CalendarServer) {
 	s.RegisterService(&Calendar_ServiceDesc, srv)
 }
 
-func _Calendar_InserEventV1_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Calendar_InsertEventV1_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(RequestV1)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(CalendarServer).InserEventV1(ctx, in)
+		return srv.(CalendarServer).InsertEventV1(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/api.Calendar/InserEventV1",
+		FullMethod: "/api.Calendar/InsertEventV1",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(CalendarServer).InserEventV1(ctx, req.(*RequestV1))
+		return srv.(CalendarServer).InsertEventV1(ctx, req.(*RequestV1))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -224,8 +224,8 @@ var Calendar_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*CalendarServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "InserEventV1",
-			Handler:    _Calendar_InserEventV1_Handler,
+			MethodName: "InsertEventV1",
+			Handler:    _Calendar_InsertEventV1_Handler,
 		},
 		{
 			MethodName: "UpdateEventV1",

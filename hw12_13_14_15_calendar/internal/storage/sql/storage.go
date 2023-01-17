@@ -237,3 +237,25 @@ func (s *Storage) LookupEvent(ctx context.Context, eID int64) (e storage.Event, 
 
 	return e, err
 }
+
+func (s *Storage) EmptyDate(ctx context.Context, userID int64, date time.Time) (bool, error) {
+	var eSQL EventDTO
+	query := `SELECT id
+	          FROM events
+			  WHERE userid = $1 and ontime = $2`
+
+	rows := s.db.QueryRowContext(ctx, query, userID, date)
+
+	if err := rows.Scan(&eSQL.ID); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return true, nil
+		}
+		return false, fmt.Errorf("failed rows.Scan: %w", err)
+	}
+
+	if err := rows.Err(); err != nil {
+		return false, fmt.Errorf("failed rows.Next: %w", err)
+	}
+
+	return false, nil
+}

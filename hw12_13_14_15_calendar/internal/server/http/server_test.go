@@ -76,7 +76,7 @@ func TestHTTPServer(t *testing.T) {
 	require.NoError(t, err)
 	calendar := app.New(log, db)
 	conf := Conf{}
-	httpsrv := NewServer(log, calendar, conf, nil)
+	httpsrv := New(log, calendar, conf, nil)
 	httpcli := &http.Client{}
 
 	t.Run("case_insert", func(t *testing.T) {

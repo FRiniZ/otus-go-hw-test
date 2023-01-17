@@ -43,14 +43,18 @@ type Storage interface {
 	DeleteEvent(context.Context, *storage.Event) error
 	LookupEvent(context.Context, int64) (storage.Event, error)
 	ListEvents(context.Context, int64) ([]storage.Event, error)
+	EmptyDate(context.Context, int64, time.Time) (bool, error)
 }
 
 func New(logger Logger, storage Storage) *App {
 	return &App{log: logger, storage: storage}
 }
 
-/*
-func CheckingEvent(e *storage.Event) error {
+func (a *App) CheckBasicRules(e *storage.Event, checkID bool) error {
+	if checkID && e.ID == 0 {
+		return fmt.Errorf("%w(ID is zero)", ErrID)
+	}
+
 	if e.UserID == 0 {
 		return fmt.Errorf("%w(UserID is %v)", ErrUserID, e.UserID)
 	}
@@ -73,6 +77,7 @@ func CheckingEvent(e *storage.Event) error {
 	}
 
 	if !e.NotifyTime.IsZero() {
+		fmt.Printf("\n\nNotifyTime:%v\n\n", e.NotifyTime)
 		if e.NotifyTime.After(e.OffTime) {
 			return fmt.Errorf("%w(NotifyTime after OffTime)", ErrNotifyTime)
 		}
@@ -85,45 +90,11 @@ func CheckingEvent(e *storage.Event) error {
 
 	return nil
 }
-*/
 
-func (a *App) CheckingEvent(e *storage.Event, checkID bool) error {
-	if checkID && e.ID == 0 {
-		return fmt.Errorf("%w(ID is zero)", ErrID)
-	}
-	if e.UserID == 0 {
-		return fmt.Errorf("%w(UserID is %v)", ErrUserID, e.UserID)
-	}
-
-	if len(e.Title) > 150 {
-		return fmt.Errorf("%w(len %v, must be <=150)", ErrTitle, len(e.Title))
-	}
-
-	if e.OnTime.IsZero() {
-		return fmt.Errorf("%w(empty OnTime)", ErrOnTime)
-	}
-
-	if !e.OffTime.IsZero() {
-		if e.OffTime.Before(e.OnTime) {
-			return fmt.Errorf("%w(OffTime before OnTime)", ErrOffTime)
-		}
-		if e.OffTime.Equal(e.OnTime) {
-			return fmt.Errorf("%w(OffTime equal OnTime)", ErrOffTime)
-		}
-	}
-
-	if !e.NotifyTime.IsZero() {
-		if e.NotifyTime.After(e.OffTime) {
-			return fmt.Errorf("%w(NotifyTime after OffTime)", ErrNotifyTime)
-		}
-		if e.NotifyTime.Before(e.OnTime) {
-			return fmt.Errorf("%w(NotifyTime before OnTime)", ErrNotifyTime)
-		}
-	}
-
-	// TODO Add checking ErrDateBusy
-
-	return nil
+func (a *App) EmptyDate(ctx context.Context, userID int64, date time.Time) (bool, error) {
+	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+	return a.storage.EmptyDate(ctx, userID, date)
 }
 
 func (a *App) Close(ctx context.Context) error {
@@ -132,8 +103,14 @@ func (a *App) Close(ctx context.Context) error {
 }
 
 func (a *App) InsertEvent(ctx context.Context, event *storage.Event) error {
-	if err := a.CheckingEvent(event, false); err != nil {
+	if err := a.CheckBasicRules(event, false); err != nil {
 		return err
+	}
+
+	if empty, err := a.EmptyDate(ctx, event.UserID, event.OnTime); err != nil {
+		return err
+	} else if !empty {
+		return ErrDateBusy
 	}
 
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
@@ -142,8 +119,14 @@ func (a *App) InsertEvent(ctx context.Context, event *storage.Event) error {
 }
 
 func (a *App) UpdateEvent(ctx context.Context, event *storage.Event) error {
-	if err := a.CheckingEvent(event, true); err != nil {
+	if err := a.CheckBasicRules(event, true); err != nil {
 		return err
+	}
+
+	if empty, err := a.EmptyDate(ctx, event.UserID, event.OnTime); err != nil {
+		return err
+	} else if !empty {
+		return ErrDateBusy
 	}
 
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
@@ -152,7 +135,7 @@ func (a *App) UpdateEvent(ctx context.Context, event *storage.Event) error {
 }
 
 func (a *App) DeleteEvent(ctx context.Context, event *storage.Event) error {
-	if err := a.CheckingEvent(event, true); err != nil {
+	if err := a.CheckBasicRules(event, true); err != nil {
 		return err
 	}
 

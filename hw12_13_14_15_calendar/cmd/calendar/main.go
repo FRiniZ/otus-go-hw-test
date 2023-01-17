@@ -72,8 +72,9 @@ func main() {
 	}
 
 	calendar := app.New(log, idb)
-	httpsrv := internalhttp.NewServer(log, calendar, config.HTTPServer, cancel)
-	grpcsrv := grpcservice.NewGRPCService(log, config.GRPSServer)
+	httpsrv := internalhttp.New(log, calendar, config.HTTPServer, cancel)
+	basesrv := grpc.NewServer(grpc.UnaryInterceptor(grpcservice.UnaryLoggerEnricherInterceptor))
+	grpcsrv := grpcservice.New(log, calendar, config.GRPSServer, basesrv)
 
 	go func() {
 		<-ctx.Done()

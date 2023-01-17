@@ -51,7 +51,7 @@ type Application interface {
 	ListEvents(context.Context, int64) ([]storage.Event, error)
 }
 
-func NewServer(log Logger, app Application, conf Conf, cancel context.CancelFunc) *Server {
+func New(log Logger, app Application, conf Conf, cancel context.CancelFunc) *Server {
 	return &Server{log: log, app: app, conf: conf, cancel: cancel}
 }
 

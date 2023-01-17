@@ -3,6 +3,7 @@ package memorystorage
 import (
 	"context"
 	"sync"
+	"time"
 
 	"github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/app"
 	"github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/storage"
@@ -84,4 +85,16 @@ func (s *Storage) LookupEvent(ctx context.Context, eID int64) (storage.Event, er
 	}
 
 	return event, app.ErrEventNotFound
+}
+
+func (s *Storage) EmptyDate(ctx context.Context, userID int64, date time.Time) (bool, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	for _, v := range s.data {
+		if v.UserID == userID &&
+			v.OnTime.Unix() == date.Unix() {
+			return false, nil
+		}
+	}
+	return true, nil
 }

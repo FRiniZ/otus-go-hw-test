@@ -7,7 +7,7 @@ option go_package ="./stub/;api";
 package api;
 
 service Calendar {
-    rpc InserEventV1 (RequestV1) returns (ReplyV1) {};
+    rpc InsertEventV1 (RequestV1) returns (ReplyV1) {};
     rpc UpdateEventV1 (RequestV1) returns (ReplyV1){};
     rpc DeleteEventV1 (RequestV1) returns (ReplyV1){};
     rpc LookupEventV1 (RequestV1) returns (ReplyV1){};
