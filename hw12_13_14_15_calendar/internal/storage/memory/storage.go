@@ -36,9 +36,6 @@ func (s *Storage) Close(ctx context.Context) error {
 }
 
 func (s *Storage) InsertEvent(ctx context.Context, e *storage.Event) error {
-	if err := app.CheckingEvent(e); err != nil {
-		return err
-	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	e.ID = getNewIDUnsafe()
@@ -47,10 +44,6 @@ func (s *Storage) InsertEvent(ctx context.Context, e *storage.Event) error {
 }
 
 func (s *Storage) UpdateEvent(ctx context.Context, e *storage.Event) error {
-	if err := app.CheckingEvent(e); err != nil {
-		return err
-	}
-
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if _, ok := s.data[e.ID]; !ok {
@@ -81,12 +74,14 @@ func (s *Storage) ListEvents(ctx context.Context, userID int64) ([]storage.Event
 	return sliceE, nil
 }
 
-func (s *Storage) LookupEvent(ctx context.Context, eID int64) (event storage.Event, err error) {
+func (s *Storage) LookupEvent(ctx context.Context, eID int64) (storage.Event, error) {
+	var event storage.Event
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	if e, ok := s.data[eID]; ok {
 		event = *e
+		return event, nil
 	}
 
-	return event, err
+	return event, app.ErrEventNotFound
 }

@@ -4,6 +4,7 @@ import (
 	"os"
 
 	"github.com/BurntSushi/toml"
+	grpcservice "github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/server/grpcservice"
 	internalhttp "github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/server/http"
 )
 
@@ -11,9 +12,10 @@ import (
 // Организация конфига в main принуждает нас сужать API компонентов, использовать
 // при их конструировании только необходимые параметры, а также уменьшает вероятность циклической зависимости.
 type Config struct {
-	HTTPServer internalhttp.ServerConf `toml:"http"`
-	Storage    StorageConf             `toml:"storage"`
-	Logger     LoggerConf              `toml:"logger"`
+	HTTPServer internalhttp.Conf `toml:"http"`
+	GRPSServer grpcservice.Conf  `toml:"grpc"`
+	Storage    StorageConf       `toml:"storage"`
+	Logger     LoggerConf        `toml:"logger"`
 }
 
 type LoggerConf struct {

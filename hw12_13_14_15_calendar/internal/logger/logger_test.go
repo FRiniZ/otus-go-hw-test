@@ -67,7 +67,7 @@ func TestLogger(t *testing.T) {
 		t.Run(fmt.Sprintf("case %s", tc.name), func(t *testing.T) {
 			var b bytes.Buffer
 			tc := tc
-			l, err := New(tc.level, &b, nil)
+			l, err := New(tc.level, &b)
 			if err != nil {
 				require.Fail(t, "Can't make object Logger", err)
 			}
@@ -89,7 +89,7 @@ func TestLogger(t *testing.T) {
 
 	t.Run("wrong_log_level", func(t *testing.T) {
 		var b bytes.Buffer
-		_, err := New("", &b, nil)
+		_, err := New("", &b)
 		require.ErrorIs(t, err, ErrLogLevel, "expected err:%v", ErrLogLevel)
 	})
 }
@@ -97,7 +97,7 @@ func TestLogger(t *testing.T) {
 func TestFatalf(t *testing.T) {
 	if os.Getenv("BE_CRASHER") == "1" {
 		var b bytes.Buffer
-		l, err := New("DEBUG", &b, nil)
+		l, err := New("DEBUG", &b)
 		if err != nil {
 			require.Fail(t, "Can't make object Logger", err)
 		}

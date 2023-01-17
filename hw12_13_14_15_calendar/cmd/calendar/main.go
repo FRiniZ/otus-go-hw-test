@@ -1,3 +1,6 @@
+//go:generate protoc --go_out=../../api --proto_path=../../api/ ../../api/EventService.proto
+//go:generate protoc --go-grpc_out=../../api --proto_path=../../api/ ../../api/EventServiceInterface.proto
+
 package main
 
 import (
@@ -5,7 +8,6 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"os/signal"
@@ -14,9 +16,12 @@ import (
 
 	"github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/app"
 	"github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/logger"
+	grpcservice "github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/server/grpcservice"
 	internalhttp "github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/server/http"
 	memorystorage "github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/storage/memory"
 	sqlstorage "github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/storage/sql"
+	"golang.org/x/sync/errgroup"
+	"google.golang.org/grpc"
 )
 
 var configFile string
@@ -43,7 +48,7 @@ func main() {
 
 	fmt.Println("Config:", config)
 
-	logg, err := logger.New(config.Logger.Level, os.Stdin, nil)
+	log, err := logger.New(config.Logger.Level, os.Stdout)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Can't allocate logger:%v\n", err)
 		os.Exit(1)
@@ -66,31 +71,56 @@ func main() {
 		idb = db
 	}
 
-	calendar := app.New(logg, idb)
-
-	server := internalhttp.NewServer(logg, calendar, config.HTTPServer)
+	calendar := app.New(log, idb)
+	httpsrv := internalhttp.NewServer(log, calendar, config.HTTPServer, cancel)
+	grpcsrv := grpcservice.NewGRPCService(log, config.GRPSServer)
 
 	go func() {
 		<-ctx.Done()
 
-		ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
+		ctx, cancel := context.WithTimeout(ctx, time.Second*3)
 		defer cancel()
 
-		if err := server.Stop(ctx); err != nil {
-			logg.Errorf("failed to stop http server:%v\n", err)
+		if err := grpcsrv.Stop(ctx); err != nil {
+			if !errors.Is(err, grpc.ErrServerStopped) {
+				log.Errorf("failed to stop GRPC-server:%v\n", err)
+			}
 		}
+
+		if err := httpsrv.Stop(ctx); err != nil {
+			if !errors.Is(err, http.ErrServerClosed) &&
+				!errors.Is(err, context.Canceled) {
+				log.Errorf("failed to stop HTTP-server:%v\n", err)
+			}
+		}
+		if err := calendar.Close(ctx); err != nil {
+			log.Errorf("failed to stop GRPC-server:%v\n", err)
+		}
+
 		if err := idb.Close(ctx); err != nil {
-			logg.Errorf("failed to close db:%v\n", err)
+			log.Errorf("failed to close db:%v\n", err)
 		}
 	}()
 
-	logg.Infof("calendar is running...\n")
+	log.Infof("calendar is running...\n")
 
-	if err := server.Start(ctx); err != nil {
-		if !errors.Is(err, http.ErrServerClosed) {
-			logg.Errorf("failed to start http server: %v\n", err.Error())
-			cancel()
-			os.Exit(1)
+	g, _ := errgroup.WithContext(ctx)
+	func1 := func() error {
+		return httpsrv.Start(ctx)
+	}
+
+	func2 := func() error {
+		return grpcsrv.Start(ctx)
+	}
+
+	g.Go(func1)
+	g.Go(func2)
+
+	if err := g.Wait(); err != nil {
+		if !errors.Is(err, http.ErrServerClosed) &&
+			!errors.Is(err, grpc.ErrServerStopped) &&
+			!errors.Is(err, context.Canceled) {
+			log.Errorf("%v\n", err)
 		}
 	}
 }

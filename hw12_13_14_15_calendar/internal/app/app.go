@@ -4,11 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/storage"
 )
 
 var (
+	ErrID             = errors.New("wrong ID")
 	ErrUserID         = errors.New("wrong UserID")
 	ErrTitle          = errors.New("wrong Title")
 	ErrDescription    = errors.New("wrong Description")
@@ -47,6 +49,7 @@ func New(logger Logger, storage Storage) *App {
 	return &App{log: logger, storage: storage}
 }
 
+/*
 func CheckingEvent(e *storage.Event) error {
 	if e.UserID == 0 {
 		return fmt.Errorf("%w(UserID is %v)", ErrUserID, e.UserID)
@@ -82,15 +85,96 @@ func CheckingEvent(e *storage.Event) error {
 
 	return nil
 }
+*/
 
-func (a App) Close(ctx context.Context) error {
+func (a *App) CheckingEvent(e *storage.Event, checkID bool) error {
+	if checkID && e.ID == 0 {
+		return fmt.Errorf("%w(ID is zero)", ErrID)
+	}
+	if e.UserID == 0 {
+		return fmt.Errorf("%w(UserID is %v)", ErrUserID, e.UserID)
+	}
+
+	if len(e.Title) > 150 {
+		return fmt.Errorf("%w(len %v, must be <=150)", ErrTitle, len(e.Title))
+	}
+
+	if e.OnTime.IsZero() {
+		return fmt.Errorf("%w(empty OnTime)", ErrOnTime)
+	}
+
+	if !e.OffTime.IsZero() {
+		if e.OffTime.Before(e.OnTime) {
+			return fmt.Errorf("%w(OffTime before OnTime)", ErrOffTime)
+		}
+		if e.OffTime.Equal(e.OnTime) {
+			return fmt.Errorf("%w(OffTime equal OnTime)", ErrOffTime)
+		}
+	}
+
+	if !e.NotifyTime.IsZero() {
+		if e.NotifyTime.After(e.OffTime) {
+			return fmt.Errorf("%w(NotifyTime after OffTime)", ErrNotifyTime)
+		}
+		if e.NotifyTime.Before(e.OnTime) {
+			return fmt.Errorf("%w(NotifyTime before OnTime)", ErrNotifyTime)
+		}
+	}
+
+	// TODO Add checking ErrDateBusy
+
+	return nil
+}
+
+func (a *App) Close(ctx context.Context) error {
+	a.log.Infof("App closed\n")
 	return a.storage.Close(ctx)
 }
 
-func (a *App) CreateEvent(ctx context.Context, id, title string) error {
-	// TODO
-	return nil
-	// return a.storage.CreateEvent(storage.Event{ID: id, Title: title})
+func (a *App) InsertEvent(ctx context.Context, event *storage.Event) error {
+	if err := a.CheckingEvent(event, false); err != nil {
+		return err
+	}
+
+	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+	return a.storage.InsertEvent(ctx, event)
 }
 
-// TODO
+func (a *App) UpdateEvent(ctx context.Context, event *storage.Event) error {
+	if err := a.CheckingEvent(event, true); err != nil {
+		return err
+	}
+
+	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+	return a.storage.UpdateEvent(ctx, event)
+}
+
+func (a *App) DeleteEvent(ctx context.Context, event *storage.Event) error {
+	if err := a.CheckingEvent(event, true); err != nil {
+		return err
+	}
+
+	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+	return a.storage.DeleteEvent(ctx, event)
+}
+
+func (a *App) LookupEvent(ctx context.Context, id int64) (storage.Event, error) {
+	if id == 0 {
+		return storage.Event{}, ErrID
+	}
+	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+	return a.storage.LookupEvent(ctx, id)
+}
+
+func (a *App) ListEvents(ctx context.Context, userID int64) ([]storage.Event, error) {
+	if userID == 0 {
+		return []storage.Event{}, ErrUserID
+	}
+	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+	return a.storage.ListEvents(ctx, userID)
+}

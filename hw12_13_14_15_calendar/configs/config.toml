@@ -5,6 +5,10 @@ level = "DEBUG"
 port = "8089"
 host = "localhost"
 
+[grpc]
+port = "10000"
+host = "localhost"
+
 [storage]
 #db = "in-memory" 
 db = "sql"

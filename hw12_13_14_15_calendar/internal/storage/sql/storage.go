@@ -3,6 +3,7 @@ package sqlstorage
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"time"
 
@@ -124,15 +125,12 @@ func stringValue(s string) sql.NullString {
 }
 
 func (s *Storage) InsertEvent(ctx context.Context, e *storage.Event) error {
-	if err := app.CheckingEvent(e); err != nil {
-		return err
-	}
-
-	query := `INSERT INTO events (userid, title, description, ontime)
-						  values ($1, $2, $3, $4) RETURNING id`
+	query := `INSERT INTO events (userid, title, description, ontime, offtime, notifytime)
+						  values ($1, $2, $3, $4, $5, $6) RETURNING id`
 
 	row := s.db.QueryRowContext(ctx, query, e.UserID, stringValue(e.Title),
-		stringValue(e.Description), timeValue(e.OnTime))
+		stringValue(e.Description), timeValue(e.OnTime), timeValue(e.OffTime),
+		timeValue(e.NotifyTime))
 
 	if err := row.Scan(&e.ID); err != nil {
 		return fmt.Errorf("failed rows.Scan: %w", err)
@@ -146,10 +144,6 @@ func (s *Storage) InsertEvent(ctx context.Context, e *storage.Event) error {
 }
 
 func (s *Storage) UpdateEvent(ctx context.Context, e *storage.Event) error {
-	if err := app.CheckingEvent(e); err != nil {
-		return err
-	}
-
 	query := `UPDATE events SET userid = $2,
 								title = $3,
 								description = $4,
@@ -229,6 +223,9 @@ func (s *Storage) LookupEvent(ctx context.Context, eID int64) (e storage.Event, 
 
 	if err := rows.Scan(&eSQL.ID, &eSQL.UserID, &eSQL.Title, &eSQL.Description,
 		&eSQL.OnTime, &eSQL.OffTime, &eSQL.NotifyTime); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return e, app.ErrEventNotFound
+		}
 		return e, fmt.Errorf("failed rows.Scan: %w", err)
 	}
 

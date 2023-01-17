@@ -1,7 +1,6 @@
 package logger
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -23,19 +22,18 @@ type Logger struct {
 	logLevel int
 	out      io.Writer
 	mu       *sync.Mutex
-	cancel   context.CancelFunc
 }
 
-func New(level string, out io.Writer, cancel context.CancelFunc) (*Logger, error) {
+func New(level string, out io.Writer) (*Logger, error) {
 	switch strings.ToUpper(level) {
 	case "ERROR":
-		return &Logger{logLevel: LevelError, mu: &sync.Mutex{}, out: out, cancel: cancel}, nil
+		return &Logger{logLevel: LevelError, mu: &sync.Mutex{}, out: out}, nil
 	case "WARN":
-		return &Logger{logLevel: LevelWarn, mu: &sync.Mutex{}, out: out, cancel: cancel}, nil
+		return &Logger{logLevel: LevelWarn, mu: &sync.Mutex{}, out: out}, nil
 	case "INFO":
-		return &Logger{logLevel: LevelInfo, mu: &sync.Mutex{}, out: out, cancel: cancel}, nil
+		return &Logger{logLevel: LevelInfo, mu: &sync.Mutex{}, out: out}, nil
 	case "DEBUG":
-		return &Logger{logLevel: LevelDebug, mu: &sync.Mutex{}, out: out, cancel: cancel}, nil
+		return &Logger{logLevel: LevelDebug, mu: &sync.Mutex{}, out: out}, nil
 	default:
 		return nil, ErrLogLevel
 	}

@@ -5,11 +5,11 @@ import (
 )
 
 type Event struct {
-	ID          int64
-	UserID      int64
-	Title       string
-	Description string
-	OnTime      time.Time
-	OffTime     time.Time
-	NotifyTime  time.Time
+	ID          int64     `json:"id"`
+	UserID      int64     `json:"userid"`
+	Title       string    `json:"title"`
+	Description string    `json:"description"`
+	OnTime      time.Time `json:"ontime"`
+	OffTime     time.Time `json:"offtime"`
+	NotifyTime  time.Time `json:"notifytime,omitempty"`
 }
