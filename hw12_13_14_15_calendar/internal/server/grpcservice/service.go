@@ -143,12 +143,14 @@ func (s Service) ListEventsV1(ctx context.Context, req *api.RequestV1) (*api.Rep
 
 // LookupEventV1 implements api.CalendarServer.
 func (s Service) LookupEventV1(ctx context.Context, req *api.RequestV1) (*api.ReplyV1, error) {
+	var event storage.Event
+	var err error
 	defer s.Log(ctx)
 	eventID := *req.Event.ID
-	event, err := s.app.LookupEvent(ctx, eventID)
-	if err != nil {
+	if event, err = s.app.LookupEvent(ctx, eventID); err != nil {
 		return &api.ReplyV1{}, err
 	}
+
 	rep := api.ReplyV1{}
 	rep.Event = append(rep.Event, &api.Event{
 		ID:          &event.ID,
