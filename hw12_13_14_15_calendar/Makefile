@@ -7,7 +7,7 @@ LDFLAGS := -X main.release="develop" -X main.buildDate=$(shell date -u +%Y-%m-%d
 generate:
 	go generate ./cmd/calendar/main.go
 
-build: generate
+build:
 	go build -v -o $(BIN) -ldflags "$(LDFLAGS)" ./cmd/calendar
 
 run: build
