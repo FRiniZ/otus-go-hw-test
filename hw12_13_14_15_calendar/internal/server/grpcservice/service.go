@@ -81,11 +81,6 @@ func (Service) EventFromAPIEvent(apiEvent *api.Event) *storage.Event {
 	return &event
 }
 
-// DeleteEventV1 implements api.CalendarServer.
-func (Service) DeleteEventV1(context.Context, *api.RequestV1) (*api.ReplyV1, error) {
-	panic("unimplemented")
-}
-
 // InsertEventV1 implements api.CalendarServer.
 func (s Service) InsertEventV1(ctx context.Context, req *api.RequestV1) (*api.ReplyV1, error) {
 	defer s.Log(ctx)
@@ -104,6 +99,19 @@ func (s Service) UpdateEventV1(ctx context.Context, req *api.RequestV1) (*api.Re
 	defer s.Log(ctx)
 	event := s.EventFromAPIEvent(req.Event)
 	if err := s.app.UpdateEvent(ctx, event); err != nil {
+		return &api.ReplyV1{}, err
+	}
+
+	rep := api.ReplyV1{}
+	rep.Event = append(rep.Event, s.APIEventFromEvent(event))
+	return &rep, nil
+}
+
+// DeleteEventV1 implements api.CalendarServer.
+func (s Service) DeleteEventV1(ctx context.Context, req *api.RequestV1) (*api.ReplyV1, error) {
+	defer s.Log(ctx)
+	event := s.EventFromAPIEvent(req.Event)
+	if err := s.app.DeleteEvent(ctx, event); err != nil {
 		return &api.ReplyV1{}, err
 	}
 
