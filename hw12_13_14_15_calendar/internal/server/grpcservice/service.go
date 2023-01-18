@@ -143,13 +143,9 @@ func (s Service) LookupEventV1(ctx context.Context, req *api.RequestV1) (*api.Re
 	defer s.Log(ctx)
 	eventID := *req.Event.ID
 	event, err := s.app.LookupEvent(ctx, eventID)
-	if err != nil {
-		return &api.ReplyV1{}, err
-	}
-
 	rep := api.ReplyV1{}
 	rep.Event = append(rep.Event, s.APIEventFromEvent(&event))
-	return &rep, nil
+	return &rep, err
 }
 
 func New(log Logger, app Application, conf Conf, basesrv *grpc.Server) *Service {
