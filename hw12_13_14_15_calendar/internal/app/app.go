@@ -43,6 +43,9 @@ type Storage interface {
 	DeleteEvent(context.Context, *storage.Event) error
 	LookupEvent(context.Context, int64) (storage.Event, error)
 	ListEvents(context.Context, int64) ([]storage.Event, error)
+	ListEventsDay(context.Context, int64, time.Time) ([]storage.Event, error)
+	ListEventsWeek(context.Context, int64, time.Time) ([]storage.Event, error)
+	ListEventsMonth(context.Context, int64, time.Time) ([]storage.Event, error)
 	IsBusyDateTimeRange(context.Context, int64, time.Time, time.Time) (bool, error)
 }
 
@@ -152,4 +155,31 @@ func (a *App) ListEvents(ctx context.Context, userID int64) ([]storage.Event, er
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
 	return a.storage.ListEvents(ctx, userID)
+}
+
+func (a *App) ListEventsDay(ctx context.Context, userID int64, date time.Time) ([]storage.Event, error) {
+	if userID == 0 {
+		return []storage.Event{}, ErrUserID
+	}
+	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+	return a.storage.ListEventsDay(ctx, userID, date)
+}
+
+func (a *App) ListEventsWeek(ctx context.Context, userID int64, date time.Time) ([]storage.Event, error) {
+	if userID == 0 {
+		return []storage.Event{}, ErrUserID
+	}
+	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+	return a.storage.ListEventsWeek(ctx, userID, date)
+}
+
+func (a *App) ListEventsMonth(ctx context.Context, userID int64, date time.Time) ([]storage.Event, error) {
+	if userID == 0 {
+		return []storage.Event{}, ErrUserID
+	}
+	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+	return a.storage.ListEventsMonth(ctx, userID, date)
 }

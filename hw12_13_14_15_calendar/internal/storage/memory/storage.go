@@ -39,6 +39,33 @@ func (s *Storage) Close(ctx context.Context) error {
 	return nil
 }
 
+func (s *Storage) inTimeSpan(start, end, check time.Time) bool {
+	switch {
+	case check.Equal(start):
+		return true
+	case check.Equal(end):
+		return true
+	case check.After(start) && check.Before(start):
+		return true
+	}
+	return false
+}
+
+func (s *Storage) IsBusyDateTimeRange(ctx context.Context, userID int64, onTime, offTime time.Time) (bool, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	for _, v := range s.data {
+		// Если дата начала события или дата окончания события входят в
+		// диапазон другого события или даты равны то считаем что время занято
+		if v.UserID == userID &&
+			(s.inTimeSpan(v.OnTime, v.OffTime, onTime) ||
+				s.inTimeSpan(v.OnTime, v.OffTime, offTime)) {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
 func (s *Storage) InsertEvent(ctx context.Context, e *storage.Event) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -78,6 +105,38 @@ func (s *Storage) ListEvents(ctx context.Context, userID int64) ([]storage.Event
 	return sliceE, nil
 }
 
+func (s *Storage) firstDayOfWeek(t time.Time) time.Time {
+	for t.Weekday() != time.Monday {
+		t = t.AddDate(0, 0, -1)
+	}
+	return t
+}
+
+func (s *Storage) firstDayOfMonth(t time.Time) time.Time {
+	return t.AddDate(0, 0, -t.Day()+1)
+}
+
+func (s *Storage) ListEventsWeek(ctx context.Context, userID int64, date time.Time) ([]storage.Event, error) {
+	return s.ListEventsDay(ctx, userID, s.firstDayOfWeek(date))
+}
+
+func (s *Storage) ListEventsMonth(ctx context.Context, userID int64, date time.Time) ([]storage.Event, error) {
+	return s.ListEventsDay(ctx, userID, s.firstDayOfMonth(date))
+}
+
+func (s *Storage) ListEventsDay(ctx context.Context, userID int64, date time.Time) ([]storage.Event, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	sliceE := []storage.Event{}
+	for _, v := range s.data {
+		if v.UserID == userID && s.inTimeSpan(date, v.OnTime, v.OffTime) {
+			sliceE = append(sliceE, *v)
+		}
+	}
+
+	return sliceE, nil
+}
+
 func (s *Storage) LookupEvent(ctx context.Context, eID int64) (storage.Event, error) {
 	var event storage.Event
 	s.mu.RLock()
@@ -88,31 +147,4 @@ func (s *Storage) LookupEvent(ctx context.Context, eID int64) (storage.Event, er
 	}
 
 	return event, ErrEventNotFound
-}
-
-func (s *Storage) inTimeSpan(start, end, check time.Time) bool {
-	switch {
-	case check.Equal(start):
-		return true
-	case check.Equal(end):
-		return true
-	case check.After(start) && check.Before(start):
-		return true
-	}
-	return false
-}
-
-func (s *Storage) IsBusyDateTimeRange(ctx context.Context, userID int64, onTime, offTime time.Time) (bool, error) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-	for _, v := range s.data {
-		// Если дата начала события или дата окончания события входят в
-		// диапазон другого события или даты равны то считаем что время занято
-		if v.UserID == userID &&
-			(s.inTimeSpan(v.OnTime, v.OffTime, onTime) ||
-				s.inTimeSpan(v.OnTime, v.OffTime, offTime)) {
-			return true, nil
-		}
-	}
-	return false, nil
 }
