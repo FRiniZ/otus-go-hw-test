@@ -2,6 +2,7 @@ package grpcservice
 
 import (
 	"context"
+	"fmt"
 	"net"
 	"os"
 	"testing"
@@ -18,7 +19,19 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-func TestGrpcService(t *testing.T) { //nolint
+func helperAPIEvent(id int64, userid int64, currTime time.Time) *api.Event {
+	aEvent := api.Event{}
+	aEvent.ID = &id
+	aEvent.UserID = &userid
+	aEvent.Title = func(s string) *string { return &s }(fmt.Sprintf("TitleN%v", userid))
+	aEvent.Description = func(s string) *string { return &s }(fmt.Sprintf("DescriptionN%v", userid))
+	aEvent.OnTime = timestamppb.New(currTime)
+	aEvent.OffTime = timestamppb.New(currTime.AddDate(0, 0, 7))
+	aEvent.NotifyTime = timestamppb.New(time.Time{})
+	return &aEvent
+}
+
+func TestGrpcService(t *testing.T) {
 	dialer := func() func(context.Context, string) (net.Conn, error) {
 		listener := bufconn.Listen(1024 * 1024)
 
@@ -69,100 +82,36 @@ func TestGrpcService(t *testing.T) { //nolint
 			client.InsertEventV1,
 			nil,
 			[]*api.Event{
-				{
-					ID:          func(i int64) *int64 { return &i }(1),
-					UserID:      func(i int64) *int64 { return &i }(1),
-					Title:       func(s string) *string { return &s }("TitleN1"),
-					Description: func(s string) *string { return &s }("DescriptionN1"),
-					OnTime:      timestamppb.New(currTime),
-					OffTime:     timestamppb.New(currTime.AddDate(0, 0, 7)),
-					NotifyTime:  timestamppb.New(time.Time{}),
-				},
+				helperAPIEvent(1, 1, currTime),
 			},
-			api.Event{
-				ID:          new(int64),
-				UserID:      func(i int64) *int64 { return &i }(1),
-				Title:       func(s string) *string { return &s }("TitleN1"),
-				Description: func(s string) *string { return &s }("DescriptionN1"),
-				OnTime:      timestamppb.New(currTime),
-				OffTime:     timestamppb.New(currTime.AddDate(0, 0, 7)),
-				NotifyTime:  timestamppb.New(time.Time{}),
-			},
+			*helperAPIEvent(0, 1, currTime),
 		},
 		{
 			"case_update",
 			client.UpdateEventV1,
 			nil,
 			[]*api.Event{
-				{
-					ID:          func(i int64) *int64 { return &i }(1),
-					UserID:      func(i int64) *int64 { return &i }(2),
-					Title:       func(s string) *string { return &s }("TitleN1"),
-					Description: func(s string) *string { return &s }("DescriptionN1"),
-					OnTime:      timestamppb.New(currTime),
-					OffTime:     timestamppb.New(currTime.AddDate(0, 0, 7)),
-					NotifyTime:  timestamppb.New(time.Time{}),
-				},
+				helperAPIEvent(1, 2, currTime),
 			},
-			api.Event{
-				ID:          func(i int64) *int64 { return &i }(1),
-				UserID:      func(i int64) *int64 { return &i }(2),
-				Title:       func(s string) *string { return &s }("TitleN1"),
-				Description: func(s string) *string { return &s }("DescriptionN1"),
-				OnTime:      timestamppb.New(currTime),
-				OffTime:     timestamppb.New(currTime.AddDate(0, 0, 7)),
-				NotifyTime:  timestamppb.New(time.Time{}),
-			},
+			*helperAPIEvent(1, 2, currTime),
 		},
 		{
 			"case_lookup",
 			client.LookupEventV1,
 			nil,
 			[]*api.Event{
-				{
-					ID:          func(i int64) *int64 { return &i }(1),
-					UserID:      func(i int64) *int64 { return &i }(2),
-					Title:       func(s string) *string { return &s }("TitleN1"),
-					Description: func(s string) *string { return &s }("DescriptionN1"),
-					OnTime:      timestamppb.New(currTime),
-					OffTime:     timestamppb.New(currTime.AddDate(0, 0, 7)),
-					NotifyTime:  timestamppb.New(time.Time{}),
-				},
+				helperAPIEvent(1, 2, currTime),
 			},
-			api.Event{
-				ID:          func(i int64) *int64 { return &i }(1),
-				UserID:      func(i int64) *int64 { return &i }(2),
-				Title:       func(s string) *string { return &s }("TitleN1"),
-				Description: func(s string) *string { return &s }("DescriptionN1"),
-				OnTime:      timestamppb.New(currTime),
-				OffTime:     timestamppb.New(currTime.AddDate(0, 0, 7)),
-				NotifyTime:  timestamppb.New(time.Time{}),
-			},
+			*helperAPIEvent(1, 2, currTime),
 		},
 		{
 			"case_listevents",
 			client.ListEventsV1,
 			nil,
 			[]*api.Event{
-				{
-					ID:          func(i int64) *int64 { return &i }(1),
-					UserID:      func(i int64) *int64 { return &i }(2),
-					Title:       func(s string) *string { return &s }("TitleN1"),
-					Description: func(s string) *string { return &s }("DescriptionN1"),
-					OnTime:      timestamppb.New(currTime),
-					OffTime:     timestamppb.New(currTime.AddDate(0, 0, 7)),
-					NotifyTime:  timestamppb.New(time.Time{}),
-				},
+				helperAPIEvent(1, 2, currTime),
 			},
-			api.Event{
-				ID:          func(i int64) *int64 { return &i }(1),
-				UserID:      func(i int64) *int64 { return &i }(2),
-				Title:       func(s string) *string { return &s }("TitleN1"),
-				Description: func(s string) *string { return &s }("DescriptionN1"),
-				OnTime:      timestamppb.New(currTime),
-				OffTime:     timestamppb.New(currTime.AddDate(0, 0, 7)),
-				NotifyTime:  timestamppb.New(time.Time{}),
-			},
+			*helperAPIEvent(1, 2, currTime),
 		},
 	}
 
