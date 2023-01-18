@@ -49,7 +49,7 @@ type Service struct {
 	api.UnimplementedCalendarServer
 }
 
-func (Service) APIEventFromEvent(event storage.Event) *api.Event {
+func (Service) APIEventFromEvent(event *storage.Event) *api.Event {
 	return &api.Event{
 		ID:          &event.ID,
 		UserID:      &event.UserID,
@@ -90,7 +90,7 @@ func (s Service) InsertEventV1(ctx context.Context, req *api.RequestV1) (*api.Re
 		return &api.ReplyV1{}, err
 	}
 	rep := api.ReplyV1{}
-	rep.Event = append(rep.Event, s.APIEventFromEvent(*event))
+	rep.Event = append(rep.Event, s.APIEventFromEvent(event))
 	return &rep, nil
 }
 
@@ -103,7 +103,7 @@ func (s Service) UpdateEventV1(ctx context.Context, req *api.RequestV1) (*api.Re
 	}
 
 	rep := api.ReplyV1{}
-	rep.Event = append(rep.Event, s.APIEventFromEvent(*event))
+	rep.Event = append(rep.Event, s.APIEventFromEvent(event))
 	return &rep, nil
 }
 
@@ -116,20 +116,21 @@ func (s Service) DeleteEventV1(ctx context.Context, req *api.RequestV1) (*api.Re
 	}
 
 	rep := api.ReplyV1{}
-	rep.Event = append(rep.Event, s.APIEventFromEvent(*event))
+	rep.Event = append(rep.Event, s.APIEventFromEvent(event))
 	return &rep, nil
 }
 
 // LookupEventV1 implements api.CalendarServer.
 func (s Service) LookupEventV1(ctx context.Context, req *api.RequestV1) (*api.ReplyV1, error) {
 	defer s.Log(ctx)
-	rep := api.ReplyV1{}
 
 	event, err := s.app.LookupEvent(ctx, *req.Event.ID)
-	{
-		event := event
-		rep.Event = append(rep.Event, s.APIEventFromEvent(event))
+	_ = event // to avoid lint err: event declared but not used (typecheck)
+	if err != nil {
+		return &api.ReplyV1{}, err
 	}
+	rep := api.ReplyV1{}
+	rep.Event = append(rep.Event, s.APIEventFromEvent(&event))
 	return &rep, err
 }
 
@@ -145,7 +146,7 @@ func (s Service) ListEventsV1(ctx context.Context, req *api.RequestV1) (*api.Rep
 	rep.Event = make([]*api.Event, len(events))
 	for i, event := range events {
 		event := event
-		rep.Event[i] = s.APIEventFromEvent(event)
+		rep.Event[i] = s.APIEventFromEvent(&event)
 	}
 	return &rep, nil
 }
