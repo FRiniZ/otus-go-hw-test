@@ -175,7 +175,7 @@ func (s *Service) Start(context.Context) error {
 func (s *Service) Stop(context.Context) error {
 	s.basesrv.GracefulStop()
 	s.log.Infof("GRPC-server shutdown\n")
-	return grpc.ErrServerStopped
+	return nil
 }
 
 func UnaryLoggerEnricherInterceptor(

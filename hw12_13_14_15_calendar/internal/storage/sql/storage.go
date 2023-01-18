@@ -239,7 +239,7 @@ func (s *Storage) LookupEvent(ctx context.Context, eID int64) (e storage.Event, 
 	return e, err
 }
 
-func (s *Storage) IsBusyDateTimeRange(ctx context.Context, userID int64, onTime time.Time, offTime time.Time) (bool, error) {
+func (s *Storage) IsBusyDateTimeRange(ctx context.Context, userID int64, onTime, offTime time.Time) (bool, error) {
 	var eSQL EventDTO
 	query := `SELECT id
 	          FROM events

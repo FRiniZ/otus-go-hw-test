@@ -59,11 +59,6 @@ func (s *Server) doNothing(w http.ResponseWriter, r *http.Request) {
 	// empty function
 }
 
-func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("hello-world"))
-}
-
 func (s *Server) helperDecode(stream io.ReadCloser, w http.ResponseWriter, event *storage.Event) error {
 	decoder := json.NewDecoder(stream)
 	if err := decoder.Decode(&event); err != nil {
@@ -174,7 +169,7 @@ func (s *Server) ListEventsV1(w http.ResponseWriter, r *http.Request) {
 	for i, e := range eventsFound {
 		jevent, err := json.Marshal(e)
 		if err != nil {
-			s.log.Errorf("LookupEvent:%v\n", err)
+			s.log.Errorf("ListEvents:%v\n", err)
 			w.Write([]byte(fmt.Sprintf("{\"error\": \"Can't LookupEvent:%v\"},\n", err)))
 		}
 		w.Write(jevent)
@@ -187,19 +182,11 @@ func (s *Server) ListEventsV1(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("]\n"))
 }
 
-// Временное решение для проверки отработки закрытия.
-func (s *Server) Shutdown(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("close"))
-	s.cancel()
-}
-
 func (s *Server) Start(ctx context.Context) error {
 	addr := net.JoinHostPort(s.conf.Host, s.conf.Port)
 	midLogger := NewMiddlewareLogger()
 	mux := http.NewServeMux()
 
-	mux.Handle("/", midLogger.loggingMiddleware(http.HandlerFunc(s.ServeHTTP)))
-	mux.Handle("/shutdown", midLogger.loggingMiddleware(http.HandlerFunc(s.Shutdown)))
 	mux.Handle("/InsertEventV1", midLogger.setCommonHeadersMiddleware(
 		midLogger.loggingMiddleware(http.HandlerFunc(s.InsertEventV1))))
 	mux.Handle("/UpdateEventV1", midLogger.setCommonHeadersMiddleware(
