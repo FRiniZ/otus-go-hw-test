@@ -49,70 +49,67 @@ type Service struct {
 	api.UnimplementedCalendarServer
 }
 
+func (Service) APIEventFromEvent(event *storage.Event) *api.Event {
+	return &api.Event{
+		ID:          &event.ID,
+		UserID:      &event.UserID,
+		Title:       &event.Title,
+		Description: &event.Description,
+		OnTime:      timestamppb.New(event.OnTime),
+		OffTime:     timestamppb.New(event.OffTime),
+		NotifyTime:  timestamppb.New(event.NotifyTime),
+	}
+}
+
+func (Service) EventFromAPIEvent(apiEvent *api.Event) *storage.Event {
+	event := storage.Event{}
+
+	event.ID = *apiEvent.ID
+	event.UserID = *apiEvent.UserID
+	event.Title = *apiEvent.Title
+	event.Description = *apiEvent.Description
+	if err := apiEvent.OnTime.CheckValid(); err == nil {
+		event.OnTime = apiEvent.OnTime.AsTime()
+	}
+	if err := apiEvent.OffTime.CheckValid(); err == nil {
+		event.OffTime = apiEvent.OffTime.AsTime()
+	}
+	if err := apiEvent.NotifyTime.CheckValid(); err == nil {
+		event.NotifyTime = apiEvent.NotifyTime.AsTime()
+	}
+
+	return &event
+}
+
 // DeleteEventV1 implements api.CalendarServer.
 func (Service) DeleteEventV1(context.Context, *api.RequestV1) (*api.ReplyV1, error) {
 	panic("unimplemented")
-}
-
-func (s *Service) Log(ctx context.Context) {
-	var b strings.Builder
-	ip, _ := peer.FromContext(ctx)
-	method := ctx.Value(KeyMethodID).(string)
-	md, ok := metadata.FromIncomingContext(ctx)
-	userAgent := "unknown"
-
-	if ok {
-		userAgent = md["user-agent"][0]
-	}
-
-	b.WriteString(ip.Addr.String())
-	b.WriteString(" ")
-	b.WriteString(time.Now().Format("02/Jan/2006:15:04:05 -0700"))
-	b.WriteString(" ")
-	b.WriteString(method)
-	b.WriteString(" ")
-	b.WriteString(userAgent)
-	b.WriteString("\"\n")
-
-	s.log.Infof(b.String())
 }
 
 // InsertEventV1 implements api.CalendarServer.
 func (s Service) InsertEventV1(ctx context.Context, req *api.RequestV1) (*api.ReplyV1, error) {
 	defer s.Log(ctx)
 
-	event := storage.Event{}
-
-	event.ID = *req.Event.ID
-	event.UserID = *req.Event.UserID
-	event.Title = *req.Event.Title
-	event.Description = *req.Event.Description
-	if err := req.Event.OnTime.CheckValid(); err == nil {
-		event.OnTime = req.Event.OnTime.AsTime()
-	}
-	if err := req.Event.OffTime.CheckValid(); err == nil {
-		event.OffTime = req.Event.OffTime.AsTime()
-	}
-	if err := req.Event.NotifyTime.CheckValid(); err == nil {
-		event.NotifyTime = req.Event.NotifyTime.AsTime()
-	}
-
-	if err := s.app.InsertEvent(ctx, &event); err != nil {
+	event := s.EventFromAPIEvent(req.Event)
+	if err := s.app.InsertEvent(ctx, event); err != nil {
 		return &api.ReplyV1{}, err
 	}
-	return &api.ReplyV1{
-		Event: []*api.Event{
-			{
-				ID:          &event.ID,
-				UserID:      &event.UserID,
-				Title:       &event.Title,
-				Description: &event.Description,
-				OnTime:      timestamppb.New(event.OnTime),
-				OffTime:     timestamppb.New(event.OffTime),
-				NotifyTime:  timestamppb.New(event.NotifyTime),
-			},
-		},
-	}, nil
+	rep := api.ReplyV1{}
+	rep.Event = append(rep.Event, s.APIEventFromEvent(event))
+	return &rep, nil
+}
+
+// UpdateEventV1 implements api.CalendarServer.
+func (s Service) UpdateEventV1(ctx context.Context, req *api.RequestV1) (*api.ReplyV1, error) {
+	defer s.Log(ctx)
+	event := s.EventFromAPIEvent(req.Event)
+	if err := s.app.UpdateEvent(ctx, event); err != nil {
+		return &api.ReplyV1{}, err
+	}
+
+	rep := api.ReplyV1{}
+	rep.Event = append(rep.Event, s.APIEventFromEvent(event))
+	return &rep, nil
 }
 
 // ListEventsV1 implements api.CalendarServer.
@@ -128,75 +125,22 @@ func (s Service) ListEventsV1(ctx context.Context, req *api.RequestV1) (*api.Rep
 	rep.Event = make([]*api.Event, len(events))
 	for i, event := range events {
 		event := event
-		rep.Event[i] = &api.Event{
-			ID:          &event.ID,
-			UserID:      &event.UserID,
-			Title:       &event.Title,
-			Description: &event.Description,
-			OnTime:      timestamppb.New(event.OnTime),
-			OffTime:     timestamppb.New(event.OffTime),
-			NotifyTime:  timestamppb.New(event.NotifyTime),
-		}
+		rep.Event[i] = s.APIEventFromEvent(&event)
 	}
 	return &rep, nil
 }
 
 // LookupEventV1 implements api.CalendarServer.
 func (s Service) LookupEventV1(ctx context.Context, req *api.RequestV1) (*api.ReplyV1, error) {
-	var event storage.Event
-	var err error
 	defer s.Log(ctx)
 	eventID := *req.Event.ID
-	if event, err = s.app.LookupEvent(ctx, eventID); err != nil {
+	event, err := s.app.LookupEvent(ctx, eventID)
+	if err != nil {
 		return &api.ReplyV1{}, err
 	}
 
 	rep := api.ReplyV1{}
-	rep.Event = append(rep.Event, &api.Event{
-		ID:          &event.ID,
-		UserID:      &event.UserID,
-		Title:       &event.Title,
-		Description: &event.Description,
-		OnTime:      timestamppb.New(event.OnTime),
-		OffTime:     timestamppb.New(event.OffTime),
-		NotifyTime:  timestamppb.New(event.NotifyTime),
-	})
-	return &rep, nil
-}
-
-// UpdateEventV1 implements api.CalendarServer.
-func (s Service) UpdateEventV1(ctx context.Context, req *api.RequestV1) (*api.ReplyV1, error) {
-	defer s.Log(ctx)
-	event := storage.Event{}
-
-	event.ID = *req.Event.ID
-	event.UserID = *req.Event.UserID
-	event.Title = *req.Event.Title
-	event.Description = *req.Event.Description
-	if err := req.Event.OnTime.CheckValid(); err == nil {
-		event.OnTime = req.Event.OnTime.AsTime()
-	}
-	if err := req.Event.OffTime.CheckValid(); err == nil {
-		event.OffTime = req.Event.OffTime.AsTime()
-	}
-	if err := req.Event.NotifyTime.CheckValid(); err == nil {
-		event.NotifyTime = req.Event.NotifyTime.AsTime()
-	}
-
-	if err := s.app.UpdateEvent(ctx, &event); err != nil {
-		return &api.ReplyV1{}, err
-	}
-
-	rep := api.ReplyV1{}
-	rep.Event = append(rep.Event, &api.Event{
-		ID:          &event.ID,
-		UserID:      &event.UserID,
-		Title:       &event.Title,
-		Description: &event.Description,
-		OnTime:      timestamppb.New(event.OnTime),
-		OffTime:     timestamppb.New(event.OffTime),
-		NotifyTime:  timestamppb.New(event.NotifyTime),
-	})
+	rep.Event = append(rep.Event, s.APIEventFromEvent(&event))
 	return &rep, nil
 }
 
@@ -236,4 +180,27 @@ func UnaryLoggerEnricherInterceptor(
 	// Calls the handler
 	h, err := handler(ctxV, req)
 	return h, err
+}
+
+func (s *Service) Log(ctx context.Context) {
+	var b strings.Builder
+	ip, _ := peer.FromContext(ctx)
+	method := ctx.Value(KeyMethodID).(string)
+	md, ok := metadata.FromIncomingContext(ctx)
+	userAgent := "unknown"
+
+	if ok {
+		userAgent = md["user-agent"][0]
+	}
+
+	b.WriteString(ip.Addr.String())
+	b.WriteString(" ")
+	b.WriteString(time.Now().Format("02/Jan/2006:15:04:05 -0700"))
+	b.WriteString(" ")
+	b.WriteString(method)
+	b.WriteString(" ")
+	b.WriteString(userAgent)
+	b.WriteString("\"\n")
+
+	s.log.Infof(b.String())
 }
