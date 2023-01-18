@@ -239,17 +239,19 @@ func (s *Storage) LookupEvent(ctx context.Context, eID int64) (e storage.Event, 
 	return e, err
 }
 
-func (s *Storage) EmptyDate(ctx context.Context, userID int64, date time.Time) (bool, error) {
+func (s *Storage) IsBusyDateTimeRange(ctx context.Context, userID int64, onTime time.Time, offTime time.Time) (bool, error) {
 	var eSQL EventDTO
 	query := `SELECT id
 	          FROM events
-			  WHERE userid = $1 and ontime = $2`
+			  WHERE userid = $1 AND
+			  (($2 >= event.ontime && $2 <= event.offtime) OR
+			   ($3 >= event.ontime && $3 <= event.offtime))`
 
-	rows := s.db.QueryRowContext(ctx, query, userID, date)
+	rows := s.db.QueryRowContext(ctx, query, userID, onTime, offTime)
 
 	if err := rows.Scan(&eSQL.ID); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return true, nil
+			return false, nil
 		}
 		return false, fmt.Errorf("failed rows.Scan: %w", err)
 	}
@@ -258,5 +260,5 @@ func (s *Storage) EmptyDate(ctx context.Context, userID int64, date time.Time) (
 		return false, fmt.Errorf("failed rows.Next: %w", err)
 	}
 
-	return false, nil
+	return true, nil
 }

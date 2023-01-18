@@ -90,14 +90,29 @@ func (s *Storage) LookupEvent(ctx context.Context, eID int64) (storage.Event, er
 	return event, ErrEventNotFound
 }
 
-func (s *Storage) EmptyDate(ctx context.Context, userID int64, date time.Time) (bool, error) {
+func (s *Storage) inTimeSpan(start, end, check time.Time) bool {
+	switch {
+	case check.Equal(start):
+		return true
+	case check.Equal(end):
+		return true
+	case check.After(start) && check.Before(start):
+		return true
+	}
+	return false
+}
+
+func (s *Storage) IsBusyDateTimeRange(ctx context.Context, userID int64, onTime, offTime time.Time) (bool, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	for _, v := range s.data {
+		// Если дата начала события или дата окончания события входят в
+		// диапазон другого события или даты равны то считаем что время занято
 		if v.UserID == userID &&
-			v.OnTime.Unix() == date.Unix() {
-			return false, nil
+			(s.inTimeSpan(v.OnTime, v.OffTime, onTime) ||
+				s.inTimeSpan(v.OnTime, v.OffTime, offTime)) {
+			return true, nil
 		}
 	}
-	return true, nil
+	return false, nil
 }

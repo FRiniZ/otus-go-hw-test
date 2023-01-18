@@ -43,7 +43,7 @@ type Storage interface {
 	DeleteEvent(context.Context, *storage.Event) error
 	LookupEvent(context.Context, int64) (storage.Event, error)
 	ListEvents(context.Context, int64) ([]storage.Event, error)
-	EmptyDate(context.Context, int64, time.Time) (bool, error)
+	IsBusyDateTimeRange(context.Context, int64, time.Time, time.Time) (bool, error)
 }
 
 func New(logger Logger, storage Storage) *App {
@@ -89,10 +89,10 @@ func (a *App) CheckBasicRules(e *storage.Event, checkID bool) error {
 	return nil
 }
 
-func (a *App) EmptyDate(ctx context.Context, userID int64, date time.Time) (bool, error) {
+func (a *App) IsBusyDateTimeRange(ctx context.Context, userID int64, onTime, offTime time.Time) (bool, error) {
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
-	return a.storage.EmptyDate(ctx, userID, date)
+	return a.storage.IsBusyDateTimeRange(ctx, userID, onTime, offTime)
 }
 
 func (a *App) Close(ctx context.Context) error {
@@ -105,9 +105,9 @@ func (a *App) InsertEvent(ctx context.Context, event *storage.Event) error {
 		return err
 	}
 
-	if empty, err := a.EmptyDate(ctx, event.UserID, event.OnTime); err != nil {
+	if busy, err := a.IsBusyDateTimeRange(ctx, event.UserID, event.OnTime, event.OffTime); err != nil {
 		return err
-	} else if !empty {
+	} else if busy {
 		return ErrDateBusy
 	}
 
