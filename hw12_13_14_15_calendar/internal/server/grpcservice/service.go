@@ -123,17 +123,20 @@ func (s Service) DeleteEventV1(ctx context.Context, req *api.RequestV1) (*api.Re
 // LookupEventV1 implements api.CalendarServer.
 func (s Service) LookupEventV1(ctx context.Context, req *api.RequestV1) (*api.ReplyV1, error) {
 	defer s.Log(ctx)
-	event, err := s.app.LookupEvent(ctx, *req.Event.ID)
 	rep := api.ReplyV1{}
-	rep.Event = append(rep.Event, s.APIEventFromEvent(event))
+
+	event, err := s.app.LookupEvent(ctx, *req.Event.ID)
+	{
+		event := event
+		rep.Event = append(rep.Event, s.APIEventFromEvent(event))
+	}
 	return &rep, err
 }
 
 // ListEventsV1 implements api.CalendarServer.
 func (s Service) ListEventsV1(ctx context.Context, req *api.RequestV1) (*api.ReplyV1, error) {
 	defer s.Log(ctx)
-	userID := *req.Event.UserID
-	events, err := s.app.ListEvents(ctx, userID)
+	events, err := s.app.ListEvents(ctx, *req.Event.UserID)
 	if err != nil {
 		return &api.ReplyV1{}, err
 	}
