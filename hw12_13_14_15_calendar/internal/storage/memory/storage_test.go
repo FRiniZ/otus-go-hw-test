@@ -6,7 +6,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/app"
 	storage "github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/storage"
 	"github.com/stretchr/testify/require"
 )
@@ -44,7 +43,7 @@ func TestStorage(t *testing.T) {
 			err = db.DeleteEvent(context.Background(), &ev)
 			require.NoError(t, err)
 			ev2, err = db.LookupEvent(context.Background(), ev.ID)
-			require.ErrorIs(t, err, app.ErrEventNotFound)
+			require.ErrorIs(t, err, ErrEventNotFound)
 			require.Equal(t, int64(0), ev2.ID)
 		})
 	}
@@ -53,67 +52,6 @@ func TestStorage(t *testing.T) {
 		helperEvent(&ev, 1)
 		ev.ID = -1
 		err := db.UpdateEvent(context.Background(), &ev)
-		require.ErrorIs(t, err, app.ErrEventNotFound)
+		require.ErrorIs(t, err, ErrEventNotFound)
 	})
 }
-
-/*
-func TestStorageRules(t *testing.T) {
-	db := New()
-
-	t.Parallel()
-	t.Run("Checking userID", func(t *testing.T) {
-		var ev storage.Event
-		helperEvent(&ev, 1)
-		ev.UserID = 0
-		err := db.InsertEvent(context.Background(), &ev)
-		require.ErrorIs(t, err, app.ErrUserID, "expected err message")
-	})
-
-	t.Run("Checking userTitle", func(t *testing.T) {
-		var ev storage.Event
-		helperEvent(&ev, 1)
-		ev.Title = string(make([]byte, 200))
-		err := db.InsertEvent(context.Background(), &ev)
-		require.ErrorIs(t, err, app.ErrTitle, "expected err message")
-	})
-
-	t.Run("Checking userOnTime", func(t *testing.T) {
-		var ev storage.Event
-		helperEvent(&ev, 1)
-		ev.OnTime = time.Time{}
-		err := db.InsertEvent(context.Background(), &ev)
-		require.ErrorIs(t, err, app.ErrOnTime, "expected err message")
-	})
-
-	t.Run("Checking userOffTime", func(t *testing.T) {
-		var ev storage.Event
-		helperEvent(&ev, 1)
-		ev.OnTime = time.Now()
-		ev.OffTime = time.Now().AddDate(0, 0, -1)
-		err := db.InsertEvent(context.Background(), &ev)
-		require.ErrorIs(t, err, app.ErrOffTime, "expected err message")
-
-		ev.OnTime = time.Now()
-		ev.OffTime = ev.OnTime
-		err = db.InsertEvent(context.Background(), &ev)
-		require.ErrorIs(t, err, app.ErrOffTime, "expected err message")
-	})
-
-	t.Run("Checking userNotifyTime", func(t *testing.T) {
-		var ev storage.Event
-		helperEvent(&ev, 1)
-		ev.OnTime = time.Now()
-		ev.OffTime = time.Now().AddDate(0, 0, +7)
-		ev.NotifyTime = time.Now().AddDate(0, 0, +8)
-		err := db.InsertEvent(context.Background(), &ev)
-		require.ErrorIs(t, err, app.ErrNotifyTime, "expected err message")
-
-		ev.OnTime = time.Now()
-		ev.OffTime = time.Now().AddDate(0, 0, +7)
-		ev.NotifyTime = time.Now().AddDate(0, 0, -1)
-		err = db.InsertEvent(context.Background(), &ev)
-		require.ErrorIs(t, err, app.ErrNotifyTime, "expected err message")
-	})
-}
-*/

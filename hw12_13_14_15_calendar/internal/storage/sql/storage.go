@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/app"
 	"github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/storage"
 	_ "github.com/jackc/pgx/stdlib" // needs for init
 )
@@ -16,6 +15,8 @@ type Storage struct {
 	dsn string
 	db  *sql.DB
 }
+
+var ErrEventNotFound = errors.New("event not found")
 
 type EventDTO struct {
 	ID          sql.NullInt64
@@ -224,7 +225,7 @@ func (s *Storage) LookupEvent(ctx context.Context, eID int64) (e storage.Event, 
 	if err := rows.Scan(&eSQL.ID, &eSQL.UserID, &eSQL.Title, &eSQL.Description,
 		&eSQL.OnTime, &eSQL.OffTime, &eSQL.NotifyTime); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return e, app.ErrEventNotFound
+			return e, ErrEventNotFound
 		}
 		return e, fmt.Errorf("failed rows.Scan: %w", err)
 	}

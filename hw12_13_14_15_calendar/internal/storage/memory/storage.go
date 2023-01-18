@@ -2,10 +2,10 @@ package memorystorage
 
 import (
 	"context"
+	"errors"
 	"sync"
 	"time"
 
-	"github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/app"
 	"github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/storage"
 )
 
@@ -16,7 +16,10 @@ type Storage struct {
 	mu   sync.RWMutex
 }
 
-var GenID = int64(1)
+var (
+	GenID            = int64(1)
+	ErrEventNotFound = errors.New("event not found")
+)
 
 func getNewIDUnsafe() int64 {
 	ret := GenID
@@ -48,7 +51,7 @@ func (s *Storage) UpdateEvent(ctx context.Context, e *storage.Event) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if _, ok := s.data[e.ID]; !ok {
-		return app.ErrEventNotFound
+		return ErrEventNotFound
 	}
 	s.data[e.ID] = e
 
@@ -84,7 +87,7 @@ func (s *Storage) LookupEvent(ctx context.Context, eID int64) (storage.Event, er
 		return event, nil
 	}
 
-	return event, app.ErrEventNotFound
+	return event, ErrEventNotFound
 }
 
 func (s *Storage) EmptyDate(ctx context.Context, userID int64, date time.Time) (bool, error) {

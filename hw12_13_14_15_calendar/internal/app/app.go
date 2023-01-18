@@ -67,13 +67,13 @@ func (a *App) CheckBasicRules(e *storage.Event, checkID bool) error {
 		return fmt.Errorf("%w(empty OnTime)", ErrOnTime)
 	}
 
-	if !e.OffTime.IsZero() {
-		if e.OffTime.Before(e.OnTime) {
-			return fmt.Errorf("%w(OffTime before OnTime)", ErrOffTime)
-		}
-		if e.OffTime.Equal(e.OnTime) {
-			return fmt.Errorf("%w(OffTime equal OnTime)", ErrOffTime)
-		}
+	switch {
+	case e.OffTime.IsZero():
+		return fmt.Errorf("%w(empty OffTime)", ErrOffTime)
+	case e.OffTime.Before(e.OnTime):
+		return fmt.Errorf("%w(OffTime before OnTime)", ErrOffTime)
+	case e.OffTime.Equal(e.OnTime):
+		return fmt.Errorf("%w(OffTime equal OnTime)", ErrOffTime)
 	}
 
 	if !e.NotifyTime.IsZero() {
@@ -85,8 +85,6 @@ func (a *App) CheckBasicRules(e *storage.Event, checkID bool) error {
 			return fmt.Errorf("%w(NotifyTime before OnTime)", ErrNotifyTime)
 		}
 	}
-
-	// TODO Add checking ErrDateBusy
 
 	return nil
 }
@@ -121,12 +119,6 @@ func (a *App) InsertEvent(ctx context.Context, event *storage.Event) error {
 func (a *App) UpdateEvent(ctx context.Context, event *storage.Event) error {
 	if err := a.CheckBasicRules(event, true); err != nil {
 		return err
-	}
-
-	if empty, err := a.EmptyDate(ctx, event.UserID, event.OnTime); err != nil {
-		return err
-	} else if !empty {
-		return ErrDateBusy
 	}
 
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
