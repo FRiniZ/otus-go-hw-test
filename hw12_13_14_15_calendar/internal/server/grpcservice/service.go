@@ -116,7 +116,7 @@ func (s Service) LookupEvent(ctx context.Context, req *api.ReqByID) (*api.RepEve
 	defer s.Log(ctx)
 
 	event, err := s.app.LookupEvent(ctx, *req.ID)
-	// _ = event // to avoid lint err: event declared but not used (typecheck)
+	_ = event // to avoid lint err: event declared but not used (typecheck)
 	if err != nil {
 		return nil, err
 	}
