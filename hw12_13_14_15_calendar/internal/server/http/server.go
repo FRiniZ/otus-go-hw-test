@@ -170,22 +170,17 @@ func (s *Server) ListEvents(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(fmt.Sprintf("{\"error\": \"Can't ListEvents:%v\"}\n", err)))
 		return
 	}
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("[\n"))
-	for i, e := range eventsFound {
-		jevent, err := json.Marshal(e)
-		if err != nil {
-			s.log.Errorf("ListEvents:%v\n", err)
-			w.Write([]byte(fmt.Sprintf("{\"error\": \"Can't ListEvents:%v\"},\n", err)))
-		}
-		w.Write(jevent)
-		if i+1 == len(eventsFound) {
-			w.Write([]byte("\n"))
-		} else {
-			w.Write([]byte(",\n"))
-		}
+
+	jevents, err := json.Marshal(eventsFound)
+	if err != nil {
+		s.log.Errorf("ListEvents:%v\n", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(fmt.Sprintf("{\"error\": \"Can't ListEvents:%v\"},\n", err)))
+		return
 	}
-	w.Write([]byte("]\n"))
+	w.WriteHeader(http.StatusOK)
+	w.Write(jevents)
+	w.Write([]byte("\n"))
 }
 
 func (s *Server) ListEventsDay(w http.ResponseWriter, r *http.Request) { //nolint:dupl
@@ -201,22 +196,17 @@ func (s *Server) ListEventsDay(w http.ResponseWriter, r *http.Request) { //nolin
 		w.Write([]byte(fmt.Sprintf("{\"error\": \"Can't ListEventsDay:%v\"}\n", err)))
 		return
 	}
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("[\n"))
-	for i, e := range eventsFound {
-		jevent, err := json.Marshal(e)
-		if err != nil {
-			s.log.Errorf("ListEventsDay:%v\n", err)
-			w.Write([]byte(fmt.Sprintf("{\"error\": \"Can't ListEventsDay:%v\"},\n", err)))
-		}
-		w.Write(jevent)
-		if i+1 == len(eventsFound) {
-			w.Write([]byte("\n"))
-		} else {
-			w.Write([]byte(",\n"))
-		}
+
+	jevents, err := json.Marshal(eventsFound)
+	if err != nil {
+		s.log.Errorf("ListEvents:%v\n", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(fmt.Sprintf("{\"error\": \"Can't ListEvents:%v\"},\n", err)))
+		return
 	}
-	w.Write([]byte("]\n"))
+	w.WriteHeader(http.StatusOK)
+	w.Write(jevents)
+	w.Write([]byte("\n"))
 }
 
 func (s *Server) ListEventsWeek(w http.ResponseWriter, r *http.Request) { //nolint:dupl
@@ -231,22 +221,17 @@ func (s *Server) ListEventsWeek(w http.ResponseWriter, r *http.Request) { //noli
 		w.Write([]byte(fmt.Sprintf("{\"error\": \"Can't ListEventsWeek:%v\"}\n", err)))
 		return
 	}
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("[\n"))
-	for i, e := range eventsFound {
-		jevent, err := json.Marshal(e)
-		if err != nil {
-			s.log.Errorf("ListEventsWeek:%v\n", err)
-			w.Write([]byte(fmt.Sprintf("{\"error\": \"Can't ListEventsWeek:%v\"},\n", err)))
-		}
-		w.Write(jevent)
-		if i+1 == len(eventsFound) {
-			w.Write([]byte("\n"))
-		} else {
-			w.Write([]byte(",\n"))
-		}
+
+	jevents, err := json.Marshal(eventsFound)
+	if err != nil {
+		s.log.Errorf("ListEvents:%v\n", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(fmt.Sprintf("{\"error\": \"Can't ListEvents:%v\"},\n", err)))
+		return
 	}
-	w.Write([]byte("]\n"))
+	w.WriteHeader(http.StatusOK)
+	w.Write(jevents)
+	w.Write([]byte("\n"))
 }
 
 func (s *Server) ListEventsMonth(w http.ResponseWriter, r *http.Request) { //nolint
@@ -261,22 +246,17 @@ func (s *Server) ListEventsMonth(w http.ResponseWriter, r *http.Request) { //nol
 		w.Write([]byte(fmt.Sprintf("{\"error\": \"Can't ListEventsMonth:%v\"}\n", err)))
 		return
 	}
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("[\n"))
-	for i, e := range eventsFound {
-		jevent, err := json.Marshal(e)
-		if err != nil {
-			s.log.Errorf("ListEventsMonth:%v\n", err)
-			w.Write([]byte(fmt.Sprintf("{\"error\": \"Can't ListEventsMonth:%v\"},\n", err)))
-		}
-		w.Write(jevent)
-		if i+1 == len(eventsFound) {
-			w.Write([]byte("\n"))
-		} else {
-			w.Write([]byte(",\n"))
-		}
+
+	jevents, err := json.Marshal(eventsFound)
+	if err != nil {
+		s.log.Errorf("ListEvents:%v\n", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(fmt.Sprintf("{\"error\": \"Can't ListEvents:%v\"},\n", err)))
+		return
 	}
-	w.Write([]byte("]\n"))
+	w.WriteHeader(http.StatusOK)
+	w.Write(jevents)
+	w.Write([]byte("\n"))
 }
 
 func (s *Server) Start(ctx context.Context) error {

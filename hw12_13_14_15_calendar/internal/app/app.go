@@ -43,9 +43,7 @@ type Storage interface {
 	DeleteEvent(context.Context, int64) error
 	LookupEvent(context.Context, int64) (storage.Event, error)
 	ListEvents(context.Context, int64) ([]storage.Event, error)
-	ListEventsDay(context.Context, int64, time.Time) ([]storage.Event, error)
-	ListEventsWeek(context.Context, int64, time.Time) ([]storage.Event, error)
-	ListEventsMonth(context.Context, int64, time.Time) ([]storage.Event, error)
+	ListEventsRange(context.Context, int64, time.Time, time.Time) ([]storage.Event, error)
 	IsBusyDateTimeRange(context.Context, int64, int64, time.Time, time.Time) (bool, error)
 }
 
@@ -95,6 +93,21 @@ func (a *App) isBusyDateTimeRange(ctx context.Context, id, userID int64, onTime,
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
 	return a.storage.IsBusyDateTimeRange(ctx, id, userID, onTime, offTime)
+}
+
+func (a *App) firstDayOfWeek(t time.Time) time.Time {
+	for t.Weekday() != time.Monday {
+		t = t.AddDate(0, 0, -1)
+	}
+	return t
+}
+
+func (a *App) firstDayOfMonth(t time.Time) time.Time {
+	return t.AddDate(0, 0, -t.Day()+1)
+}
+
+func (a *App) lastDayOfMonth(t time.Time) time.Time {
+	return t.AddDate(0, 1, -t.Day())
 }
 
 func (a *App) Close(ctx context.Context) error {
@@ -164,7 +177,7 @@ func (a *App) ListEventsDay(ctx context.Context, userID int64, date time.Time) (
 	}
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
-	return a.storage.ListEventsDay(ctx, userID, date)
+	return a.storage.ListEventsRange(ctx, userID, date, date)
 }
 
 func (a *App) ListEventsWeek(ctx context.Context, userID int64, date time.Time) ([]storage.Event, error) {
@@ -173,7 +186,9 @@ func (a *App) ListEventsWeek(ctx context.Context, userID int64, date time.Time) 
 	}
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
-	return a.storage.ListEventsWeek(ctx, userID, date)
+	monday := a.firstDayOfWeek(date)
+	sunday := monday.AddDate(0, 0, 6)
+	return a.storage.ListEventsRange(ctx, userID, monday, sunday)
 }
 
 func (a *App) ListEventsMonth(ctx context.Context, userID int64, date time.Time) ([]storage.Event, error) {
@@ -182,5 +197,7 @@ func (a *App) ListEventsMonth(ctx context.Context, userID int64, date time.Time)
 	}
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
-	return a.storage.ListEventsMonth(ctx, userID, date)
+	dayFirst := a.firstDayOfMonth(date)
+	dayLast := a.lastDayOfMonth(date)
+	return a.storage.ListEventsRange(ctx, userID, dayFirst, dayLast)
 }

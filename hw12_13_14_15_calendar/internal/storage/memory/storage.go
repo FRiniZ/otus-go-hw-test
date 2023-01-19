@@ -101,54 +101,22 @@ func (s *Storage) ListEvents(ctx context.Context, userID int64) ([]storage.Event
 	return sliceE, nil
 }
 
-func (s *Storage) firstDayOfWeek(t time.Time) time.Time {
-	for t.Weekday() != time.Monday {
-		t = t.AddDate(0, 0, -1)
-	}
-	return t
-}
-
-func (s *Storage) firstDayOfMonth(t time.Time) time.Time {
-	return t.AddDate(0, 0, -t.Day()+1)
-}
-
-func (s *Storage) lastDayOfMonth(t time.Time) time.Time {
-	return t.AddDate(0, 1, -t.Day())
-}
-
-func (s *Storage) ListEventsWeek(ctx context.Context, userID int64, date time.Time) ([]storage.Event, error) {
+func (s *Storage) ListEventsRange(ctx context.Context, userID int64, begin, end time.Time) ([]storage.Event, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	sliceE := []storage.Event{}
 
-	monday := s.firstDayOfWeek(date)
 	for _, v := range s.data {
 		if v.UserID == userID &&
-			(s.inTimeSpan(monday, monday.AddDate(0, 0, 6), v.OnTime) ||
-				s.inTimeSpan(monday, monday.AddDate(0, 0, 6), v.OffTime)) {
+			(s.inTimeSpan(begin, end, v.OnTime) ||
+				s.inTimeSpan(begin, end, v.OffTime)) {
 			sliceE = append(sliceE, *v)
 		}
 	}
 	return sliceE, nil
 }
 
-func (s *Storage) ListEventsMonth(ctx context.Context, userID int64, date time.Time) ([]storage.Event, error) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-	sliceE := []storage.Event{}
-
-	dayFirst := s.firstDayOfMonth(date)
-	dayLast := s.lastDayOfMonth(date)
-	for _, v := range s.data {
-		if v.UserID == userID &&
-			(s.inTimeSpan(dayFirst, dayLast, v.OnTime) ||
-				s.inTimeSpan(dayFirst, dayLast, v.OffTime)) {
-			sliceE = append(sliceE, *v)
-		}
-	}
-	return sliceE, nil
-}
-
+/*
 func (s *Storage) ListEventsDay(ctx context.Context, userID int64, date time.Time) ([]storage.Event, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -162,6 +130,7 @@ func (s *Storage) ListEventsDay(ctx context.Context, userID int64, date time.Tim
 
 	return sliceE, nil
 }
+*/
 
 func (s *Storage) LookupEvent(ctx context.Context, eID int64) (storage.Event, error) {
 	var event storage.Event

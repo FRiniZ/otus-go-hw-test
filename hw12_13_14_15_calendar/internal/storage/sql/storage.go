@@ -190,34 +190,25 @@ func (s *Storage) ListEvents(ctx context.Context, userID int64) (events []storag
 	return events, err
 }
 
-func (s *Storage) firstDayOfWeek(t time.Time) time.Time {
-	for t.Weekday() != time.Monday {
-		t = t.AddDate(0, 0, -1)
+/*
+	func (s *Storage) ListEventsWeek(ctx context.Context, userID int64, date time.Time) ([]storage.Event, error) {
+		return s.ListEventsDay(ctx, userID, date)
 	}
-	return t
-}
 
-func (s *Storage) firstDayOfMonth(t time.Time) time.Time {
-	return t.AddDate(0, 0, -t.Day()+1)
-}
-
-func (s *Storage) ListEventsWeek(ctx context.Context, userID int64, date time.Time) ([]storage.Event, error) {
-	return s.ListEventsDay(ctx, userID, s.firstDayOfWeek(date))
-}
-
-func (s *Storage) ListEventsMonth(ctx context.Context, userID int64, date time.Time) ([]storage.Event, error) {
-	return s.ListEventsDay(ctx, userID, s.firstDayOfMonth(date))
-}
-
-func (s *Storage) ListEventsDay(ctx context.Context, userID int64, date time.Time) (events []storage.Event, err error) {
+	func (s *Storage) ListEventsMonth(ctx context.Context, userID int64, date time.Time) ([]storage.Event, error) {
+		return s.ListEventsDay(ctx, userID, date)
+	}
+*/
+func (s *Storage) ListEventsRange(ctx context.Context, userID int64, begin, end time.Time) (events []storage.Event, err error) {
 	var e storage.Event
 	var eSQL EventDTO
 
 	query := `SELECT id, userid, title, description, ontime, offtime, notifytime
 	          FROM events
-			  WHERE userid = $1 AND $2 BETWEEN ontime AND offtime`
+			  WHERE userid = $1 AND 
+			  (ontime BETWEEN $2 AND $3 OR offtime BETWEEN $2 AND $3)`
 
-	rows, err := s.db.QueryContext(ctx, query, userID, date)
+	rows, err := s.db.QueryContext(ctx, query, userID, begin, end)
 	if err != nil {
 		return events, fmt.Errorf("failed lookup event: %w", err)
 	}

@@ -129,15 +129,16 @@ func TestSqlStorage(t *testing.T) {
 		userID := int64(200)
 		currTime := time.Now()
 		mock.ExpectQuery(`SELECT id, userid, title, description, ontime, offtime, notifytime
-							FROM events WHERE userid = $1 AND $2 BETWEEN ontime AND offtime`).
-			WithArgs(userID, timeValue(currTime)).
+							FROM events WHERE userid = $1 AND 
+							(ontime BETWEEN $2 AND $3 OR offtime BETWEEN $2 AND $3)`).
+			WithArgs(userID, timeValue(currTime), timeValue(currTime)).
 			WillReturnRows(sqlmock.NewRows([]string{"id", "userid", "title", "description", "ontime", "offtime", "notifytime"}).
 				AddRow(eID1, userID, "TitleN100", "DescriptionN100",
 					timeValue(currTime), timeValue(currTime.AddDate(0, 0, 7)), timeValue(time.Time{})).
 				AddRow(eID2, userID, "TitleN101", "DescriptionN101",
 					timeValue(currTime), timeValue(currTime.AddDate(0, 0, 7)), timeValue(time.Time{})))
 
-		eFound, err := storage.ListEventsDay(context.Background(), userID, currTime)
+		eFound, err := storage.ListEventsRange(context.Background(), userID, currTime, currTime)
 		require.NoError(t, err)
 		require.EqualValues(t, 2, len(eFound))
 		require.EqualValues(t, eID1, eFound[0].ID)
