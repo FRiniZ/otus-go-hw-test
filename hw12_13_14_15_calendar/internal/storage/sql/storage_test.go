@@ -73,7 +73,7 @@ func TestSqlStorage(t *testing.T) {
 			WithArgs(event.ID).
 			WillReturnResult(sqlmock.NewResult(0, 1))
 
-		err = storage.DeleteEvent(context.Background(), &event)
+		err = storage.DeleteEvent(context.Background(), event.ID)
 		require.NoError(t, err)
 
 		if err := mock.ExpectationsWereMet(); err != nil {
@@ -102,7 +102,7 @@ func TestSqlStorage(t *testing.T) {
 
 	t.Run("case_listevents", func(t *testing.T) {
 		eID1 := int64(100)
-		eID2 := int64(100)
+		eID2 := int64(101)
 		userID := int64(200)
 		mock.ExpectQuery("SELECT id, userid, title, description, ontime, offtime, notifytime FROM events WHERE userid = $1").
 			WithArgs(userID).
@@ -113,6 +113,31 @@ func TestSqlStorage(t *testing.T) {
 					timeValue(time.Now()), timeValue(time.Now().AddDate(0, 0, 7)), timeValue(time.Time{})))
 
 		eFound, err := storage.ListEvents(context.Background(), userID)
+		require.NoError(t, err)
+		require.EqualValues(t, 2, len(eFound))
+		require.EqualValues(t, eID1, eFound[0].ID)
+		require.EqualValues(t, eID2, eFound[1].ID)
+
+		if err := mock.ExpectationsWereMet(); err != nil {
+			t.Errorf("there were unfulfilled expectations: %s", err)
+		}
+	})
+
+	t.Run("case_listevents_day", func(t *testing.T) {
+		eID1 := int64(100)
+		eID2 := int64(101)
+		userID := int64(200)
+		currTime := time.Now()
+		mock.ExpectQuery(`SELECT id, userid, title, description, ontime, offtime, notifytime
+							FROM events WHERE userid = $1 AND $2 BETWEEN ontime AND offtime`).
+			WithArgs(userID, timeValue(currTime)).
+			WillReturnRows(sqlmock.NewRows([]string{"id", "userid", "title", "description", "ontime", "offtime", "notifytime"}).
+				AddRow(eID1, userID, "TitleN100", "DescriptionN100",
+					timeValue(currTime), timeValue(currTime.AddDate(0, 0, 7)), timeValue(time.Time{})).
+				AddRow(eID2, userID, "TitleN101", "DescriptionN101",
+					timeValue(currTime), timeValue(currTime.AddDate(0, 0, 7)), timeValue(time.Time{})))
+
+		eFound, err := storage.ListEventsDay(context.Background(), userID, currTime)
 		require.NoError(t, err)
 		require.EqualValues(t, 2, len(eFound))
 		require.EqualValues(t, eID1, eFound[0].ID)

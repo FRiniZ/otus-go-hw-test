@@ -2,7 +2,6 @@ package app
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"testing"
 	"time"
@@ -29,39 +28,49 @@ func TestApp(t *testing.T) {
 			OffTime:     time.Time{},
 			NotifyTime:  time.Time{},
 		}
-		err := app.CheckBasicRules(&event, true)
+		err := app.checkBasicRules(&event, true)
 		require.ErrorIs(t, err, ErrID)
 
-		err = app.CheckBasicRules(&event, false)
+		err = app.checkBasicRules(&event, false)
 		require.ErrorIs(t, err, ErrUserID)
 
 		event.UserID = 1
-		err = app.CheckBasicRules(&event, false)
+		err = app.checkBasicRules(&event, false)
 		require.ErrorIs(t, err, ErrTitle)
 
 		event.Title = "TitleN1"
-		err = app.CheckBasicRules(&event, false)
+		err = app.checkBasicRules(&event, false)
 		require.ErrorIs(t, err, ErrOnTime)
 
 		event.OnTime = currTime
-		err = app.CheckBasicRules(&event, false)
+		err = app.checkBasicRules(&event, false)
 		require.ErrorIs(t, err, ErrOffTime)
 
 		event.OffTime = currTime
-		err = app.CheckBasicRules(&event, false)
+		err = app.checkBasicRules(&event, false)
 		require.ErrorIs(t, err, ErrOffTime)
 
 		event.OffTime = currTime.AddDate(0, 0, -1)
-		err = app.CheckBasicRules(&event, false)
+		err = app.checkBasicRules(&event, false)
 		require.ErrorIs(t, err, ErrOffTime)
 
 		event.OffTime = currTime.AddDate(0, 0, 7)
-		err = app.CheckBasicRules(&event, false)
+		err = app.checkBasicRules(&event, false)
 		require.NoError(t, err)
 
 		err = app.InsertEvent(ctx, &event)
 		require.NoError(t, err)
-		err = app.InsertEvent(ctx, &event)
+
+		eventCopy := storage.Event{
+			ID:          0,
+			UserID:      event.UserID,
+			Title:       event.Title,
+			Description: event.Description,
+			OnTime:      event.OnTime,
+			OffTime:     event.OffTime,
+			NotifyTime:  event.NotifyTime,
+		}
+		err = app.InsertEvent(ctx, &eventCopy)
 		require.ErrorIs(t, err, ErrDateBusy)
 	})
 
@@ -78,11 +87,9 @@ func TestApp(t *testing.T) {
 		}
 		err := app.InsertEvent(ctx, &event)
 		require.NoError(t, err)
-		fmt.Println(event.OnTime)
 
 		event.OnTime = currTime.AddDate(0, 0, 2)
 		err = app.UpdateEvent(ctx, &event)
-		fmt.Println(event.OnTime)
 		require.NoError(t, err)
 
 		eventFound, err := app.LookupEvent(ctx, event.ID)
@@ -93,7 +100,7 @@ func TestApp(t *testing.T) {
 		require.NoError(t, err)
 		require.EqualValues(t, int(1), len(events))
 
-		err = app.DeleteEvent(ctx, &event)
+		err = app.DeleteEvent(ctx, event.ID)
 		require.NoError(t, err)
 	})
 }

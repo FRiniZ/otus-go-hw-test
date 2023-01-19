@@ -16,10 +16,31 @@ message Event {
     optional google.protobuf.Timestamp  NotifyTime      = 7;
 }
 
-message RequestV1 {
+message ReqByEvent {
     optional Event  event = 1;
 }
 
-message ReplyV1 {
-    repeated Event  event = 1;
+message ReqByID {
+    optional int64   ID = 1;
+}
+
+message ReqByUser {
+    optional int64   UserID = 1;
+}
+
+message ReqByUserByDate {
+    optional int64                      UserID = 1;
+    optional google.protobuf.Timestamp  Date         = 2;
+}
+
+message RepEmpty {
+
+}
+
+message RepID {
+    optional int64    ID = 1;
+}
+
+message RepEvents {
+    repeated Event  event = 2;
 }

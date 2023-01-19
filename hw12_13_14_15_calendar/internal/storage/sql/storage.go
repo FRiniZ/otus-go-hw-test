@@ -84,30 +84,6 @@ func (s *Storage) Connect(ctx context.Context) error {
 }
 
 func (s *Storage) Close(ctx context.Context) error {
-	/*
-		Сохранено временно. Возможно нужно как то доработать. Пока не знаю как
-		ctxClose, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-
-		dbCloseChan := make(chan error)
-		go func(che chan error) {
-			if err := s.db.Close(); err != nil {
-				che <- err
-				return
-			}
-			che <- nil
-		}(dbCloseChan)
-
-		select {
-		case <-ctxClose.Done():
-			return ctxClose.Err()
-		case err, ok := <-dbCloseChan:
-			if ok && err != nil {
-				fmt.Println("CloseChan")
-				return err
-			}
-		}
-	*/
 	return s.db.Close()
 }
 
@@ -173,11 +149,11 @@ func (s *Storage) UpdateEvent(ctx context.Context, e *storage.Event) error {
 	return nil
 }
 
-func (s *Storage) DeleteEvent(ctx context.Context, e *storage.Event) error {
+func (s *Storage) DeleteEvent(ctx context.Context, id int64) error {
 	query := `DELETE FROM events
 	          WHERE id = $1`
 
-	if _, err := s.db.ExecContext(ctx, query, e.ID); err != nil {
+	if _, err := s.db.ExecContext(ctx, query, id); err != nil {
 		return fmt.Errorf("failed delete event: %w", err)
 	}
 
@@ -239,7 +215,7 @@ func (s *Storage) ListEventsDay(ctx context.Context, userID int64, date time.Tim
 
 	query := `SELECT id, userid, title, description, ontime, offtime, notifytime
 	          FROM events
-			  WHERE userid = $1 && date($2) BETWEEN date(ontime) AND date(offtime)`
+			  WHERE userid = $1 AND $2 BETWEEN ontime AND offtime`
 
 	rows, err := s.db.QueryContext(ctx, query, userID, date)
 	if err != nil {
@@ -288,15 +264,15 @@ func (s *Storage) LookupEvent(ctx context.Context, eID int64) (e storage.Event, 
 	return e, err
 }
 
-func (s *Storage) IsBusyDateTimeRange(ctx context.Context, userID int64, onTime, offTime time.Time) (bool, error) {
+func (s *Storage) IsBusyDateTimeRange(ctx context.Context, id, userID int64, onTime, offTime time.Time) (bool, error) {
 	var eSQL EventDTO
 	query := `SELECT id
 	          FROM events
-			  WHERE userid = $1 AND
-			  (($2 >= event.ontime && $2 <= event.offtime) OR
-			   ($3 >= event.ontime && $3 <= event.offtime))`
+			  WHERE id != $1 AND userid = $2
+			  (($3 BETWEEN event.ontime and event.offtime) OR
+			   ($4 BETWEEN event.ontime and event.offtime))`
 
-	rows := s.db.QueryRowContext(ctx, query, userID, onTime, offTime)
+	rows := s.db.QueryRowContext(ctx, query, id, userID, onTime, offTime)
 
 	if err := rows.Scan(&eSQL.ID); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {

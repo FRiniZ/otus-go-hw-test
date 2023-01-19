@@ -40,62 +40,61 @@ type Storage interface {
 	Close(context.Context) error
 	InsertEvent(context.Context, *storage.Event) error
 	UpdateEvent(context.Context, *storage.Event) error
-	DeleteEvent(context.Context, *storage.Event) error
+	DeleteEvent(context.Context, int64) error
 	LookupEvent(context.Context, int64) (storage.Event, error)
 	ListEvents(context.Context, int64) ([]storage.Event, error)
 	ListEventsDay(context.Context, int64, time.Time) ([]storage.Event, error)
 	ListEventsWeek(context.Context, int64, time.Time) ([]storage.Event, error)
 	ListEventsMonth(context.Context, int64, time.Time) ([]storage.Event, error)
-	IsBusyDateTimeRange(context.Context, int64, time.Time, time.Time) (bool, error)
+	IsBusyDateTimeRange(context.Context, int64, int64, time.Time, time.Time) (bool, error)
 }
 
 func New(logger Logger, storage Storage) *App {
 	return &App{log: logger, storage: storage}
 }
 
-func (a *App) CheckBasicRules(e *storage.Event, checkID bool) error {
+func (a *App) checkBasicRules(e *storage.Event, checkID bool) error {
 	if checkID && e.ID == 0 {
-		return fmt.Errorf("%w(ID is zero)", ErrID)
+		return fmt.Errorf("%w: zero", ErrID)
 	}
 
 	if e.UserID == 0 {
-		return fmt.Errorf("%w(UserID is %v)", ErrUserID, e.UserID)
+		return fmt.Errorf("%w: zero", ErrUserID)
 	}
 
 	if len(e.Title) > 150 {
-		return fmt.Errorf("%w(len %v, must be <=150)", ErrTitle, len(e.Title))
+		return fmt.Errorf("%w: must be <=150", ErrTitle)
 	}
 
 	if e.OnTime.IsZero() {
-		return fmt.Errorf("%w(empty OnTime)", ErrOnTime)
+		return fmt.Errorf("%w: empty", ErrOnTime)
 	}
 
 	switch {
 	case e.OffTime.IsZero():
-		return fmt.Errorf("%w(empty OffTime)", ErrOffTime)
+		return fmt.Errorf("%w: empty", ErrOffTime)
 	case e.OffTime.Before(e.OnTime):
-		return fmt.Errorf("%w(OffTime before OnTime)", ErrOffTime)
+		return fmt.Errorf("%w: before OnTime", ErrOffTime)
 	case e.OffTime.Equal(e.OnTime):
-		return fmt.Errorf("%w(OffTime equal OnTime)", ErrOffTime)
+		return fmt.Errorf("%w: equal OnTime", ErrOffTime)
 	}
 
 	if !e.NotifyTime.IsZero() {
-		fmt.Printf("\n\nNotifyTime:%v\n\n", e.NotifyTime)
 		if e.NotifyTime.After(e.OffTime) {
-			return fmt.Errorf("%w(NotifyTime after OffTime)", ErrNotifyTime)
+			return fmt.Errorf("%w: after OffTime", ErrNotifyTime)
 		}
 		if e.NotifyTime.Before(e.OnTime) {
-			return fmt.Errorf("%w(NotifyTime before OnTime)", ErrNotifyTime)
+			return fmt.Errorf("%w: before OnTime", ErrNotifyTime)
 		}
 	}
 
 	return nil
 }
 
-func (a *App) IsBusyDateTimeRange(ctx context.Context, userID int64, onTime, offTime time.Time) (bool, error) {
+func (a *App) isBusyDateTimeRange(ctx context.Context, id, userID int64, onTime, offTime time.Time) (bool, error) {
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
-	return a.storage.IsBusyDateTimeRange(ctx, userID, onTime, offTime)
+	return a.storage.IsBusyDateTimeRange(ctx, id, userID, onTime, offTime)
 }
 
 func (a *App) Close(ctx context.Context) error {
@@ -104,11 +103,11 @@ func (a *App) Close(ctx context.Context) error {
 }
 
 func (a *App) InsertEvent(ctx context.Context, event *storage.Event) error {
-	if err := a.CheckBasicRules(event, false); err != nil {
+	if err := a.checkBasicRules(event, false); err != nil {
 		return err
 	}
 
-	if busy, err := a.IsBusyDateTimeRange(ctx, event.UserID, event.OnTime, event.OffTime); err != nil {
+	if busy, err := a.isBusyDateTimeRange(ctx, event.ID, event.UserID, event.OnTime, event.OffTime); err != nil {
 		return err
 	} else if busy {
 		return ErrDateBusy
@@ -120,8 +119,14 @@ func (a *App) InsertEvent(ctx context.Context, event *storage.Event) error {
 }
 
 func (a *App) UpdateEvent(ctx context.Context, event *storage.Event) error {
-	if err := a.CheckBasicRules(event, true); err != nil {
+	if err := a.checkBasicRules(event, true); err != nil {
 		return err
+	}
+
+	if busy, err := a.isBusyDateTimeRange(ctx, event.ID, event.UserID, event.OnTime, event.OffTime); err != nil {
+		return err
+	} else if busy {
+		return ErrDateBusy
 	}
 
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
@@ -129,14 +134,10 @@ func (a *App) UpdateEvent(ctx context.Context, event *storage.Event) error {
 	return a.storage.UpdateEvent(ctx, event)
 }
 
-func (a *App) DeleteEvent(ctx context.Context, event *storage.Event) error {
-	if err := a.CheckBasicRules(event, true); err != nil {
-		return err
-	}
-
+func (a *App) DeleteEvent(ctx context.Context, id int64) error {
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
-	return a.storage.DeleteEvent(ctx, event)
+	return a.storage.DeleteEvent(ctx, id)
 }
 
 func (a *App) LookupEvent(ctx context.Context, id int64) (storage.Event, error) {

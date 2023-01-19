@@ -82,7 +82,7 @@ func TestHTTPServer(t *testing.T) {
 	t.Run("case_insert", func(t *testing.T) {
 		var rep ReplayMsg
 
-		ts := httptest.NewServer(http.HandlerFunc(httpsrv.InsertEventV1))
+		ts := httptest.NewServer(http.HandlerFunc(httpsrv.InsertEvent))
 		defer ts.Close()
 
 		reader := strings.NewReader(body1)
@@ -113,7 +113,7 @@ func TestHTTPServer(t *testing.T) {
 	})
 	t.Run("case_update", func(t *testing.T) {
 		var rep ReplayMsg
-		ts := httptest.NewServer(http.HandlerFunc(httpsrv.UpdateEventV1))
+		ts := httptest.NewServer(http.HandlerFunc(httpsrv.UpdateEvent))
 		defer ts.Close()
 
 		reader := strings.NewReader(body2)
@@ -132,7 +132,7 @@ func TestHTTPServer(t *testing.T) {
 
 	t.Run("case_lookup", func(t *testing.T) {
 		var rep storage.Event
-		ts := httptest.NewServer(http.HandlerFunc(httpsrv.LookupEventV1))
+		ts := httptest.NewServer(http.HandlerFunc(httpsrv.LookupEvent))
 		defer ts.Close()
 
 		reader := strings.NewReader(body1)
@@ -149,7 +149,7 @@ func TestHTTPServer(t *testing.T) {
 
 	t.Run("case_listevents", func(t *testing.T) {
 		var rep []storage.Event
-		ts := httptest.NewServer(http.HandlerFunc(httpsrv.ListEventsV1))
+		ts := httptest.NewServer(http.HandlerFunc(httpsrv.ListEvents))
 		defer ts.Close()
 
 		reader := strings.NewReader(bodyUserID)
@@ -168,7 +168,7 @@ func TestHTTPServer(t *testing.T) {
 
 	t.Run("case_delete", func(t *testing.T) {
 		var rep ReplayMsg
-		ts := httptest.NewServer(http.HandlerFunc(httpsrv.DeleteEventV1))
+		ts := httptest.NewServer(http.HandlerFunc(httpsrv.DeleteEvent))
 		defer ts.Close()
 
 		reader := strings.NewReader(body2)

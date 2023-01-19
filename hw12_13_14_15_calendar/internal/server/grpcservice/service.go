@@ -36,9 +36,12 @@ type Logger interface {
 type Application interface {
 	InsertEvent(context.Context, *storage.Event) error
 	UpdateEvent(context.Context, *storage.Event) error
-	DeleteEvent(context.Context, *storage.Event) error
+	DeleteEvent(context.Context, int64) error
 	LookupEvent(context.Context, int64) (storage.Event, error)
 	ListEvents(context.Context, int64) ([]storage.Event, error)
+	ListEventsDay(context.Context, int64, time.Time) ([]storage.Event, error)
+	ListEventsWeek(context.Context, int64, time.Time) ([]storage.Event, error)
+	ListEventsMonth(context.Context, int64, time.Time) ([]storage.Event, error)
 }
 
 type Service struct {
@@ -69,80 +72,116 @@ func (Service) EventFromAPIEvent(apiEvent *api.Event) *storage.Event {
 	event.Title = *apiEvent.Title
 	event.Description = *apiEvent.Description
 	if err := apiEvent.OnTime.CheckValid(); err == nil {
-		event.OnTime = apiEvent.OnTime.AsTime()
+		event.OnTime = apiEvent.OnTime.AsTime().Local()
 	}
 	if err := apiEvent.OffTime.CheckValid(); err == nil {
-		event.OffTime = apiEvent.OffTime.AsTime()
+		event.OffTime = apiEvent.OffTime.AsTime().Local()
 	}
 	if err := apiEvent.NotifyTime.CheckValid(); err == nil {
-		event.NotifyTime = apiEvent.NotifyTime.AsTime()
+		event.NotifyTime = apiEvent.NotifyTime.AsTime().Local()
 	}
 
 	return &event
 }
 
-// InsertEventV1 implements api.CalendarServer.
-func (s Service) InsertEventV1(ctx context.Context, req *api.RequestV1) (*api.ReplyV1, error) {
+func (s Service) InsertEvent(ctx context.Context, req *api.ReqByEvent) (*api.RepID, error) {
 	defer s.Log(ctx)
 
 	event := s.EventFromAPIEvent(req.Event)
 	if err := s.app.InsertEvent(ctx, event); err != nil {
-		return &api.ReplyV1{}, err
+		return nil, err
 	}
-	rep := api.ReplyV1{}
-	rep.Event = append(rep.Event, s.APIEventFromEvent(event))
-	return &rep, nil
+
+	return &api.RepID{ID: &event.ID}, nil
 }
 
-// UpdateEventV1 implements api.CalendarServer.
-func (s Service) UpdateEventV1(ctx context.Context, req *api.RequestV1) (*api.ReplyV1, error) {
+func (s Service) UpdateEvent(ctx context.Context, req *api.ReqByEvent) (*api.RepEmpty, error) {
 	defer s.Log(ctx)
 	event := s.EventFromAPIEvent(req.Event)
 	if err := s.app.UpdateEvent(ctx, event); err != nil {
-		return &api.ReplyV1{}, err
+		return nil, err
 	}
-
-	rep := api.ReplyV1{}
-	rep.Event = append(rep.Event, s.APIEventFromEvent(event))
-	return &rep, nil
+	return &api.RepEmpty{}, nil
 }
 
-// DeleteEventV1 implements api.CalendarServer.
-func (s Service) DeleteEventV1(ctx context.Context, req *api.RequestV1) (*api.ReplyV1, error) {
+func (s Service) DeleteEvent(ctx context.Context, req *api.ReqByID) (*api.RepEmpty, error) {
 	defer s.Log(ctx)
-	event := s.EventFromAPIEvent(req.Event)
-	if err := s.app.DeleteEvent(ctx, event); err != nil {
-		return &api.ReplyV1{}, err
+	if err := s.app.DeleteEvent(ctx, *req.ID); err != nil {
+		return nil, err
 	}
-
-	rep := api.ReplyV1{}
-	rep.Event = append(rep.Event, s.APIEventFromEvent(event))
-	return &rep, nil
+	return new(api.RepEmpty), nil
 }
 
-// LookupEventV1 implements api.CalendarServer.
-func (s Service) LookupEventV1(ctx context.Context, req *api.RequestV1) (*api.ReplyV1, error) {
+func (s Service) LookupEvent(ctx context.Context, req *api.ReqByID) (*api.RepEvents, error) {
 	defer s.Log(ctx)
 
-	event, err := s.app.LookupEvent(ctx, *req.Event.ID)
-	_ = event // to avoid lint err: event declared but not used (typecheck)
+	event, err := s.app.LookupEvent(ctx, *req.ID)
+	// _ = event // to avoid lint err: event declared but not used (typecheck)
 	if err != nil {
-		return &api.ReplyV1{}, err
+		return nil, err
 	}
-	rep := api.ReplyV1{}
+
+	rep := api.RepEvents{}
 	rep.Event = append(rep.Event, s.APIEventFromEvent(&event))
-	return &rep, err
+	return &rep, nil
 }
 
-// ListEventsV1 implements api.CalendarServer.
-func (s Service) ListEventsV1(ctx context.Context, req *api.RequestV1) (*api.ReplyV1, error) {
+func (s Service) ListEvents(ctx context.Context, req *api.ReqByUser) (*api.RepEvents, error) {
 	defer s.Log(ctx)
-	events, err := s.app.ListEvents(ctx, *req.Event.UserID)
+	events, err := s.app.ListEvents(ctx, *req.UserID)
 	if err != nil {
-		return &api.ReplyV1{}, err
+		return nil, err
 	}
 
-	rep := api.ReplyV1{}
+	rep := api.RepEvents{}
+	rep.Event = make([]*api.Event, len(events))
+	for i, event := range events {
+		event := event
+		rep.Event[i] = s.APIEventFromEvent(&event)
+	}
+	return &rep, nil
+}
+
+func (s Service) ListEventsDay(ctx context.Context, req *api.ReqByUserByDate) (*api.RepEvents, error) {
+	defer s.Log(ctx)
+	events, err := s.app.ListEventsDay(ctx, *req.UserID, req.Date.AsTime().Local())
+	if err != nil {
+		return nil, err
+	}
+
+	rep := api.RepEvents{}
+	rep.Event = make([]*api.Event, len(events))
+	for i, event := range events {
+		event := event
+		rep.Event[i] = s.APIEventFromEvent(&event)
+	}
+	return &rep, nil
+}
+
+func (s Service) ListEventsWeek(ctx context.Context, req *api.ReqByUserByDate) (*api.RepEvents, error) {
+	defer s.Log(ctx)
+	events, err := s.app.ListEventsWeek(ctx, *req.UserID, req.Date.AsTime().Local())
+	if err != nil {
+		return nil, err
+	}
+
+	rep := api.RepEvents{}
+	rep.Event = make([]*api.Event, len(events))
+	for i, event := range events {
+		event := event
+		rep.Event[i] = s.APIEventFromEvent(&event)
+	}
+	return &rep, nil
+}
+
+func (s Service) ListEventsMonth(ctx context.Context, req *api.ReqByUserByDate) (*api.RepEvents, error) {
+	defer s.Log(ctx)
+	events, err := s.app.ListEventsMonth(ctx, *req.UserID, req.Date.AsTime().Local())
+	if err != nil {
+		return nil, err
+	}
+
+	rep := api.RepEvents{}
 	rep.Event = make([]*api.Event, len(events))
 	for i, event := range events {
 		event := event

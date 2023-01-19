@@ -116,7 +116,7 @@ func (x *Event) GetNotifyTime() *timestamppb.Timestamp {
 	return nil
 }
 
-type RequestV1 struct {
+type ReqByEvent struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
@@ -124,8 +124,8 @@ type RequestV1 struct {
 	Event *Event `protobuf:"bytes,1,opt,name=event,proto3,oneof" json:"event,omitempty"`
 }
 
-func (x *RequestV1) Reset() {
-	*x = RequestV1{}
+func (x *ReqByEvent) Reset() {
+	*x = ReqByEvent{}
 	if protoimpl.UnsafeEnabled {
 		mi := &file_EventService_proto_msgTypes[1]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -133,13 +133,13 @@ func (x *RequestV1) Reset() {
 	}
 }
 
-func (x *RequestV1) String() string {
+func (x *ReqByEvent) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*RequestV1) ProtoMessage() {}
+func (*ReqByEvent) ProtoMessage() {}
 
-func (x *RequestV1) ProtoReflect() protoreflect.Message {
+func (x *ReqByEvent) ProtoReflect() protoreflect.Message {
 	mi := &file_EventService_proto_msgTypes[1]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -151,28 +151,28 @@ func (x *RequestV1) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use RequestV1.ProtoReflect.Descriptor instead.
-func (*RequestV1) Descriptor() ([]byte, []int) {
+// Deprecated: Use ReqByEvent.ProtoReflect.Descriptor instead.
+func (*ReqByEvent) Descriptor() ([]byte, []int) {
 	return file_EventService_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *RequestV1) GetEvent() *Event {
+func (x *ReqByEvent) GetEvent() *Event {
 	if x != nil {
 		return x.Event
 	}
 	return nil
 }
 
-type ReplyV1 struct {
+type ReqByID struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Event []*Event `protobuf:"bytes,1,rep,name=event,proto3" json:"event,omitempty"`
+	ID *int64 `protobuf:"varint,1,opt,name=ID,proto3,oneof" json:"ID,omitempty"`
 }
 
-func (x *ReplyV1) Reset() {
-	*x = ReplyV1{}
+func (x *ReqByID) Reset() {
+	*x = ReqByID{}
 	if protoimpl.UnsafeEnabled {
 		mi := &file_EventService_proto_msgTypes[2]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -180,13 +180,13 @@ func (x *ReplyV1) Reset() {
 	}
 }
 
-func (x *ReplyV1) String() string {
+func (x *ReqByID) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*ReplyV1) ProtoMessage() {}
+func (*ReqByID) ProtoMessage() {}
 
-func (x *ReplyV1) ProtoReflect() protoreflect.Message {
+func (x *ReqByID) ProtoReflect() protoreflect.Message {
 	mi := &file_EventService_proto_msgTypes[2]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -198,12 +198,246 @@ func (x *ReplyV1) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ReplyV1.ProtoReflect.Descriptor instead.
-func (*ReplyV1) Descriptor() ([]byte, []int) {
+// Deprecated: Use ReqByID.ProtoReflect.Descriptor instead.
+func (*ReqByID) Descriptor() ([]byte, []int) {
 	return file_EventService_proto_rawDescGZIP(), []int{2}
 }
 
-func (x *ReplyV1) GetEvent() []*Event {
+func (x *ReqByID) GetID() int64 {
+	if x != nil && x.ID != nil {
+		return *x.ID
+	}
+	return 0
+}
+
+type ReqByUser struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	UserID *int64 `protobuf:"varint,1,opt,name=UserID,proto3,oneof" json:"UserID,omitempty"`
+}
+
+func (x *ReqByUser) Reset() {
+	*x = ReqByUser{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_EventService_proto_msgTypes[3]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *ReqByUser) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ReqByUser) ProtoMessage() {}
+
+func (x *ReqByUser) ProtoReflect() protoreflect.Message {
+	mi := &file_EventService_proto_msgTypes[3]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ReqByUser.ProtoReflect.Descriptor instead.
+func (*ReqByUser) Descriptor() ([]byte, []int) {
+	return file_EventService_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *ReqByUser) GetUserID() int64 {
+	if x != nil && x.UserID != nil {
+		return *x.UserID
+	}
+	return 0
+}
+
+type ReqByUserByDate struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	UserID *int64                 `protobuf:"varint,1,opt,name=UserID,proto3,oneof" json:"UserID,omitempty"`
+	Date   *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=Date,proto3,oneof" json:"Date,omitempty"`
+}
+
+func (x *ReqByUserByDate) Reset() {
+	*x = ReqByUserByDate{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_EventService_proto_msgTypes[4]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *ReqByUserByDate) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ReqByUserByDate) ProtoMessage() {}
+
+func (x *ReqByUserByDate) ProtoReflect() protoreflect.Message {
+	mi := &file_EventService_proto_msgTypes[4]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ReqByUserByDate.ProtoReflect.Descriptor instead.
+func (*ReqByUserByDate) Descriptor() ([]byte, []int) {
+	return file_EventService_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *ReqByUserByDate) GetUserID() int64 {
+	if x != nil && x.UserID != nil {
+		return *x.UserID
+	}
+	return 0
+}
+
+func (x *ReqByUserByDate) GetDate() *timestamppb.Timestamp {
+	if x != nil {
+		return x.Date
+	}
+	return nil
+}
+
+type RepEmpty struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+}
+
+func (x *RepEmpty) Reset() {
+	*x = RepEmpty{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_EventService_proto_msgTypes[5]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *RepEmpty) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RepEmpty) ProtoMessage() {}
+
+func (x *RepEmpty) ProtoReflect() protoreflect.Message {
+	mi := &file_EventService_proto_msgTypes[5]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RepEmpty.ProtoReflect.Descriptor instead.
+func (*RepEmpty) Descriptor() ([]byte, []int) {
+	return file_EventService_proto_rawDescGZIP(), []int{5}
+}
+
+type RepID struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	ID *int64 `protobuf:"varint,1,opt,name=ID,proto3,oneof" json:"ID,omitempty"`
+}
+
+func (x *RepID) Reset() {
+	*x = RepID{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_EventService_proto_msgTypes[6]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *RepID) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RepID) ProtoMessage() {}
+
+func (x *RepID) ProtoReflect() protoreflect.Message {
+	mi := &file_EventService_proto_msgTypes[6]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RepID.ProtoReflect.Descriptor instead.
+func (*RepID) Descriptor() ([]byte, []int) {
+	return file_EventService_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *RepID) GetID() int64 {
+	if x != nil && x.ID != nil {
+		return *x.ID
+	}
+	return 0
+}
+
+type RepEvents struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Event []*Event `protobuf:"bytes,2,rep,name=event,proto3" json:"event,omitempty"`
+}
+
+func (x *RepEvents) Reset() {
+	*x = RepEvents{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_EventService_proto_msgTypes[7]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *RepEvents) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RepEvents) ProtoMessage() {}
+
+func (x *RepEvents) ProtoReflect() protoreflect.Message {
+	mi := &file_EventService_proto_msgTypes[7]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RepEvents.ProtoReflect.Descriptor instead.
+func (*RepEvents) Descriptor() ([]byte, []int) {
+	return file_EventService_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *RepEvents) GetEvent() []*Event {
 	if x != nil {
 		return x.Event
 	}
@@ -241,15 +475,31 @@ var file_EventService_proto_rawDesc = []byte{
 	0x73, 0x63, 0x72, 0x69, 0x70, 0x74, 0x69, 0x6f, 0x6e, 0x42, 0x09, 0x0a, 0x07, 0x5f, 0x4f, 0x6e,
 	0x54, 0x69, 0x6d, 0x65, 0x42, 0x0a, 0x0a, 0x08, 0x5f, 0x4f, 0x66, 0x66, 0x54, 0x69, 0x6d, 0x65,
 	0x42, 0x0d, 0x0a, 0x0b, 0x5f, 0x4e, 0x6f, 0x74, 0x69, 0x66, 0x79, 0x54, 0x69, 0x6d, 0x65, 0x22,
-	0x3c, 0x0a, 0x09, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x56, 0x31, 0x12, 0x25, 0x0a, 0x05,
-	0x65, 0x76, 0x65, 0x6e, 0x74, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x0a, 0x2e, 0x61, 0x70,
-	0x69, 0x2e, 0x45, 0x76, 0x65, 0x6e, 0x74, 0x48, 0x00, 0x52, 0x05, 0x65, 0x76, 0x65, 0x6e, 0x74,
-	0x88, 0x01, 0x01, 0x42, 0x08, 0x0a, 0x06, 0x5f, 0x65, 0x76, 0x65, 0x6e, 0x74, 0x22, 0x2b, 0x0a,
-	0x07, 0x52, 0x65, 0x70, 0x6c, 0x79, 0x56, 0x31, 0x12, 0x20, 0x0a, 0x05, 0x65, 0x76, 0x65, 0x6e,
-	0x74, 0x18, 0x01, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x0a, 0x2e, 0x61, 0x70, 0x69, 0x2e, 0x45, 0x76,
-	0x65, 0x6e, 0x74, 0x52, 0x05, 0x65, 0x76, 0x65, 0x6e, 0x74, 0x42, 0x0d, 0x5a, 0x0b, 0x2e, 0x2f,
-	0x73, 0x74, 0x75, 0x62, 0x2f, 0x3b, 0x61, 0x70, 0x69, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f,
-	0x33,
+	0x3d, 0x0a, 0x0a, 0x52, 0x65, 0x71, 0x42, 0x79, 0x45, 0x76, 0x65, 0x6e, 0x74, 0x12, 0x25, 0x0a,
+	0x05, 0x65, 0x76, 0x65, 0x6e, 0x74, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x0a, 0x2e, 0x61,
+	0x70, 0x69, 0x2e, 0x45, 0x76, 0x65, 0x6e, 0x74, 0x48, 0x00, 0x52, 0x05, 0x65, 0x76, 0x65, 0x6e,
+	0x74, 0x88, 0x01, 0x01, 0x42, 0x08, 0x0a, 0x06, 0x5f, 0x65, 0x76, 0x65, 0x6e, 0x74, 0x22, 0x25,
+	0x0a, 0x07, 0x52, 0x65, 0x71, 0x42, 0x79, 0x49, 0x44, 0x12, 0x13, 0x0a, 0x02, 0x49, 0x44, 0x18,
+	0x01, 0x20, 0x01, 0x28, 0x03, 0x48, 0x00, 0x52, 0x02, 0x49, 0x44, 0x88, 0x01, 0x01, 0x42, 0x05,
+	0x0a, 0x03, 0x5f, 0x49, 0x44, 0x22, 0x33, 0x0a, 0x09, 0x52, 0x65, 0x71, 0x42, 0x79, 0x55, 0x73,
+	0x65, 0x72, 0x12, 0x1b, 0x0a, 0x06, 0x55, 0x73, 0x65, 0x72, 0x49, 0x44, 0x18, 0x01, 0x20, 0x01,
+	0x28, 0x03, 0x48, 0x00, 0x52, 0x06, 0x55, 0x73, 0x65, 0x72, 0x49, 0x44, 0x88, 0x01, 0x01, 0x42,
+	0x09, 0x0a, 0x07, 0x5f, 0x55, 0x73, 0x65, 0x72, 0x49, 0x44, 0x22, 0x77, 0x0a, 0x0f, 0x52, 0x65,
+	0x71, 0x42, 0x79, 0x55, 0x73, 0x65, 0x72, 0x42, 0x79, 0x44, 0x61, 0x74, 0x65, 0x12, 0x1b, 0x0a,
+	0x06, 0x55, 0x73, 0x65, 0x72, 0x49, 0x44, 0x18, 0x01, 0x20, 0x01, 0x28, 0x03, 0x48, 0x00, 0x52,
+	0x06, 0x55, 0x73, 0x65, 0x72, 0x49, 0x44, 0x88, 0x01, 0x01, 0x12, 0x33, 0x0a, 0x04, 0x44, 0x61,
+	0x74, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x1a, 0x2e, 0x67, 0x6f, 0x6f, 0x67, 0x6c,
+	0x65, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x62, 0x75, 0x66, 0x2e, 0x54, 0x69, 0x6d, 0x65, 0x73,
+	0x74, 0x61, 0x6d, 0x70, 0x48, 0x01, 0x52, 0x04, 0x44, 0x61, 0x74, 0x65, 0x88, 0x01, 0x01, 0x42,
+	0x09, 0x0a, 0x07, 0x5f, 0x55, 0x73, 0x65, 0x72, 0x49, 0x44, 0x42, 0x07, 0x0a, 0x05, 0x5f, 0x44,
+	0x61, 0x74, 0x65, 0x22, 0x0a, 0x0a, 0x08, 0x52, 0x65, 0x70, 0x45, 0x6d, 0x70, 0x74, 0x79, 0x22,
+	0x23, 0x0a, 0x05, 0x52, 0x65, 0x70, 0x49, 0x44, 0x12, 0x13, 0x0a, 0x02, 0x49, 0x44, 0x18, 0x01,
+	0x20, 0x01, 0x28, 0x03, 0x48, 0x00, 0x52, 0x02, 0x49, 0x44, 0x88, 0x01, 0x01, 0x42, 0x05, 0x0a,
+	0x03, 0x5f, 0x49, 0x44, 0x22, 0x2d, 0x0a, 0x09, 0x52, 0x65, 0x70, 0x45, 0x76, 0x65, 0x6e, 0x74,
+	0x73, 0x12, 0x20, 0x0a, 0x05, 0x65, 0x76, 0x65, 0x6e, 0x74, 0x18, 0x02, 0x20, 0x03, 0x28, 0x0b,
+	0x32, 0x0a, 0x2e, 0x61, 0x70, 0x69, 0x2e, 0x45, 0x76, 0x65, 0x6e, 0x74, 0x52, 0x05, 0x65, 0x76,
+	0x65, 0x6e, 0x74, 0x42, 0x0d, 0x5a, 0x0b, 0x2e, 0x2f, 0x73, 0x74, 0x75, 0x62, 0x2f, 0x3b, 0x61,
+	0x70, 0x69, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -264,24 +514,30 @@ func file_EventService_proto_rawDescGZIP() []byte {
 	return file_EventService_proto_rawDescData
 }
 
-var file_EventService_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
+var file_EventService_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
 var file_EventService_proto_goTypes = []interface{}{
 	(*Event)(nil),                 // 0: api.Event
-	(*RequestV1)(nil),             // 1: api.RequestV1
-	(*ReplyV1)(nil),               // 2: api.ReplyV1
-	(*timestamppb.Timestamp)(nil), // 3: google.protobuf.Timestamp
+	(*ReqByEvent)(nil),            // 1: api.ReqByEvent
+	(*ReqByID)(nil),               // 2: api.ReqByID
+	(*ReqByUser)(nil),             // 3: api.ReqByUser
+	(*ReqByUserByDate)(nil),       // 4: api.ReqByUserByDate
+	(*RepEmpty)(nil),              // 5: api.RepEmpty
+	(*RepID)(nil),                 // 6: api.RepID
+	(*RepEvents)(nil),             // 7: api.RepEvents
+	(*timestamppb.Timestamp)(nil), // 8: google.protobuf.Timestamp
 }
 var file_EventService_proto_depIdxs = []int32{
-	3, // 0: api.Event.OnTime:type_name -> google.protobuf.Timestamp
-	3, // 1: api.Event.OffTime:type_name -> google.protobuf.Timestamp
-	3, // 2: api.Event.NotifyTime:type_name -> google.protobuf.Timestamp
-	0, // 3: api.RequestV1.event:type_name -> api.Event
-	0, // 4: api.ReplyV1.event:type_name -> api.Event
-	5, // [5:5] is the sub-list for method output_type
-	5, // [5:5] is the sub-list for method input_type
-	5, // [5:5] is the sub-list for extension type_name
-	5, // [5:5] is the sub-list for extension extendee
-	0, // [0:5] is the sub-list for field type_name
+	8, // 0: api.Event.OnTime:type_name -> google.protobuf.Timestamp
+	8, // 1: api.Event.OffTime:type_name -> google.protobuf.Timestamp
+	8, // 2: api.Event.NotifyTime:type_name -> google.protobuf.Timestamp
+	0, // 3: api.ReqByEvent.event:type_name -> api.Event
+	8, // 4: api.ReqByUserByDate.Date:type_name -> google.protobuf.Timestamp
+	0, // 5: api.RepEvents.event:type_name -> api.Event
+	6, // [6:6] is the sub-list for method output_type
+	6, // [6:6] is the sub-list for method input_type
+	6, // [6:6] is the sub-list for extension type_name
+	6, // [6:6] is the sub-list for extension extendee
+	0, // [0:6] is the sub-list for field type_name
 }
 
 func init() { file_EventService_proto_init() }
@@ -303,7 +559,7 @@ func file_EventService_proto_init() {
 			}
 		}
 		file_EventService_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*RequestV1); i {
+			switch v := v.(*ReqByEvent); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -315,7 +571,67 @@ func file_EventService_proto_init() {
 			}
 		}
 		file_EventService_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*ReplyV1); i {
+			switch v := v.(*ReqByID); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_EventService_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*ReqByUser); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_EventService_proto_msgTypes[4].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*ReqByUserByDate); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_EventService_proto_msgTypes[5].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*RepEmpty); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_EventService_proto_msgTypes[6].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*RepID); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_EventService_proto_msgTypes[7].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*RepEvents); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -329,13 +645,17 @@ func file_EventService_proto_init() {
 	}
 	file_EventService_proto_msgTypes[0].OneofWrappers = []interface{}{}
 	file_EventService_proto_msgTypes[1].OneofWrappers = []interface{}{}
+	file_EventService_proto_msgTypes[2].OneofWrappers = []interface{}{}
+	file_EventService_proto_msgTypes[3].OneofWrappers = []interface{}{}
+	file_EventService_proto_msgTypes[4].OneofWrappers = []interface{}{}
+	file_EventService_proto_msgTypes[6].OneofWrappers = []interface{}{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_EventService_proto_rawDesc,
 			NumEnums:      0,
-			NumMessages:   3,
+			NumMessages:   8,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

@@ -40,7 +40,7 @@ func TestStorage(t *testing.T) {
 			ev2, err := db.LookupEvent(context.Background(), ev.ID)
 			require.NoError(t, err)
 			require.Equal(t, ev.ID, ev2.ID)
-			err = db.DeleteEvent(context.Background(), &ev)
+			err = db.DeleteEvent(context.Background(), ev.ID)
 			require.NoError(t, err)
 			ev2, err = db.LookupEvent(context.Background(), ev.ID)
 			require.ErrorIs(t, err, ErrEventNotFound)

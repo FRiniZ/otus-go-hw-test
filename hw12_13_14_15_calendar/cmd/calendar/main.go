@@ -79,7 +79,7 @@ func main() {
 	go func() {
 		<-ctx.Done()
 
-		ctx, cancel := context.WithTimeout(ctx, time.Second*3)
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
 		defer cancel()
 
 		if err := grpcsrv.Stop(ctx); err != nil {
@@ -105,13 +105,13 @@ func main() {
 
 	log.Infof("calendar is running...\n")
 
-	g, _ := errgroup.WithContext(ctx)
+	g, ctxEG := errgroup.WithContext(ctx)
 	func1 := func() error {
-		return httpsrv.Start(ctx)
+		return httpsrv.Start(ctxEG)
 	}
 
 	func2 := func() error {
-		return grpcsrv.Start(ctx)
+		return grpcsrv.Start(ctxEG)
 	}
 
 	g.Go(func1)

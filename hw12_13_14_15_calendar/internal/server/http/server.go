@@ -46,9 +46,25 @@ type Logger interface {
 type Application interface {
 	InsertEvent(context.Context, *storage.Event) error
 	UpdateEvent(context.Context, *storage.Event) error
-	DeleteEvent(context.Context, *storage.Event) error
+	DeleteEvent(context.Context, int64) error
 	LookupEvent(context.Context, int64) (storage.Event, error)
 	ListEvents(context.Context, int64) ([]storage.Event, error)
+	ListEventsDay(context.Context, int64, time.Time) ([]storage.Event, error)
+	ListEventsWeek(context.Context, int64, time.Time) ([]storage.Event, error)
+	ListEventsMonth(context.Context, int64, time.Time) ([]storage.Event, error)
+}
+
+type reqByID struct {
+	ID int64 `json:"id"`
+}
+
+type reqByUser struct {
+	UserID int64 `json:"userid"`
+}
+
+type reqByUserByDate struct {
+	UserID int64     `json:"userid"`
+	Date   time.Time `json:"date"`
 }
 
 func New(log Logger, app Application, conf Conf, cancel context.CancelFunc) *Server {
@@ -59,9 +75,9 @@ func (s *Server) doNothing(w http.ResponseWriter, r *http.Request) {
 	// empty function
 }
 
-func (s *Server) helperDecode(stream io.ReadCloser, w http.ResponseWriter, event *storage.Event) error {
+func (s *Server) helperDecode(stream io.ReadCloser, w http.ResponseWriter, data interface{}) error {
 	decoder := json.NewDecoder(stream)
-	if err := decoder.Decode(&event); err != nil {
+	if err := decoder.Decode(&data); err != nil {
 		s.log.Errorf("Can't decode json:%v\n", err)
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte(fmt.Sprintf("{\"error\": \"Can't decode json:%v\"}\n", err)))
@@ -70,7 +86,7 @@ func (s *Server) helperDecode(stream io.ReadCloser, w http.ResponseWriter, event
 	return nil
 }
 
-func (s *Server) InsertEventV1(w http.ResponseWriter, r *http.Request) {
+func (s *Server) InsertEvent(w http.ResponseWriter, r *http.Request) {
 	var event storage.Event
 	if err := s.helperDecode(r.Body, w, &event); err != nil {
 		return
@@ -88,7 +104,7 @@ func (s *Server) InsertEventV1(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("{\"msg\": \"Inserted\"}\n"))
 }
 
-func (s *Server) UpdateEventV1(w http.ResponseWriter, r *http.Request) {
+func (s *Server) UpdateEvent(w http.ResponseWriter, r *http.Request) {
 	var event storage.Event
 	if err := s.helperDecode(r.Body, w, &event); err != nil {
 		return
@@ -106,14 +122,14 @@ func (s *Server) UpdateEventV1(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("{\"msg\": \"Updated\"}\n"))
 }
 
-func (s *Server) DeleteEventV1(w http.ResponseWriter, r *http.Request) {
-	var event storage.Event
-	if err := s.helperDecode(r.Body, w, &event); err != nil {
+func (s *Server) DeleteEvent(w http.ResponseWriter, r *http.Request) {
+	var req reqByID
+	if err := s.helperDecode(r.Body, w, &req); err != nil {
 		return
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
-	err := s.app.DeleteEvent(ctx, &event)
+	err := s.app.DeleteEvent(ctx, req.ID)
 	if err != nil {
 		s.log.Errorf("DeleteEvent:%v\n", err)
 		w.WriteHeader(http.StatusBadRequest)
@@ -124,14 +140,14 @@ func (s *Server) DeleteEventV1(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("{\"msg\": \"Deleted\"}\n"))
 }
 
-func (s *Server) LookupEventV1(w http.ResponseWriter, r *http.Request) {
-	var event storage.Event
-	if err := s.helperDecode(r.Body, w, &event); err != nil {
+func (s *Server) LookupEvent(w http.ResponseWriter, r *http.Request) {
+	var req reqByID
+	if err := s.helperDecode(r.Body, w, &req); err != nil {
 		return
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
-	eventFound, err := s.app.LookupEvent(ctx, event.ID)
+	eventFound, err := s.app.LookupEvent(ctx, req.ID)
 	if err != nil {
 		s.log.Errorf("LookupEvent:%v\n", err)
 		w.WriteHeader(http.StatusBadRequest)
@@ -150,14 +166,14 @@ func (s *Server) LookupEventV1(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("\n"))
 }
 
-func (s *Server) ListEventsV1(w http.ResponseWriter, r *http.Request) {
-	var event storage.Event
-	if err := s.helperDecode(r.Body, w, &event); err != nil {
+func (s *Server) ListEvents(w http.ResponseWriter, r *http.Request) {
+	var req reqByUser
+	if err := s.helperDecode(r.Body, w, &req); err != nil {
 		return
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
-	eventsFound, err := s.app.ListEvents(ctx, event.UserID)
+	eventsFound, err := s.app.ListEvents(ctx, req.UserID)
 	if err != nil {
 		s.log.Errorf("ListEvents:%v\n", err)
 		w.WriteHeader(http.StatusBadRequest)
@@ -170,7 +186,104 @@ func (s *Server) ListEventsV1(w http.ResponseWriter, r *http.Request) {
 		jevent, err := json.Marshal(e)
 		if err != nil {
 			s.log.Errorf("ListEvents:%v\n", err)
-			w.Write([]byte(fmt.Sprintf("{\"error\": \"Can't LookupEvent:%v\"},\n", err)))
+			w.Write([]byte(fmt.Sprintf("{\"error\": \"Can't ListEvents:%v\"},\n", err)))
+		}
+		w.Write(jevent)
+		if i+1 == len(eventsFound) {
+			w.Write([]byte("\n"))
+		} else {
+			w.Write([]byte(",\n"))
+		}
+	}
+	w.Write([]byte("]\n"))
+}
+
+func (s *Server) ListEventsDay(w http.ResponseWriter, r *http.Request) { //nolint
+	// lines are duplicate of `internal/server/http/server.go:233-263` (dupl)
+	var req reqByUserByDate
+	if err := s.helperDecode(r.Body, w, &req); err != nil {
+		return
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	eventsFound, err := s.app.ListEventsDay(ctx, req.UserID, req.Date)
+	if err != nil {
+		s.log.Errorf("ListEventsDay:%v\n", err)
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(fmt.Sprintf("{\"error\": \"Can't ListEventsDay:%v\"}\n", err)))
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("[\n"))
+	for i, e := range eventsFound {
+		jevent, err := json.Marshal(e)
+		if err != nil {
+			s.log.Errorf("ListEventsDay:%v\n", err)
+			w.Write([]byte(fmt.Sprintf("{\"error\": \"Can't ListEventsDay:%v\"},\n", err)))
+		}
+		w.Write(jevent)
+		if i+1 == len(eventsFound) {
+			w.Write([]byte("\n"))
+		} else {
+			w.Write([]byte(",\n"))
+		}
+	}
+	w.Write([]byte("]\n"))
+}
+
+func (s *Server) ListEventsWeek(w http.ResponseWriter, r *http.Request) { //nolint
+	var req reqByUserByDate
+	if err := s.helperDecode(r.Body, w, &req); err != nil {
+		return
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	eventsFound, err := s.app.ListEventsWeek(ctx, req.UserID, req.Date)
+	if err != nil {
+		s.log.Errorf("ListEventsWeek:%v\n", err)
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(fmt.Sprintf("{\"error\": \"Can't ListEventsWeek:%v\"}\n", err)))
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("[\n"))
+	for i, e := range eventsFound {
+		jevent, err := json.Marshal(e)
+		if err != nil {
+			s.log.Errorf("ListEventsWeek:%v\n", err)
+			w.Write([]byte(fmt.Sprintf("{\"error\": \"Can't ListEventsWeek:%v\"},\n", err)))
+		}
+		w.Write(jevent)
+		if i+1 == len(eventsFound) {
+			w.Write([]byte("\n"))
+		} else {
+			w.Write([]byte(",\n"))
+		}
+	}
+	w.Write([]byte("]\n"))
+}
+
+func (s *Server) ListEventsMonth(w http.ResponseWriter, r *http.Request) { //nolint
+	var req reqByUserByDate
+	if err := s.helperDecode(r.Body, w, &req); err != nil {
+		return
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	eventsFound, err := s.app.ListEventsMonth(ctx, req.UserID, req.Date)
+	if err != nil {
+		s.log.Errorf("ListEventsMonth:%v\n", err)
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(fmt.Sprintf("{\"error\": \"Can't ListEventsMonth:%v\"}\n", err)))
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("[\n"))
+	for i, e := range eventsFound {
+		jevent, err := json.Marshal(e)
+		if err != nil {
+			s.log.Errorf("ListEventsMonth:%v\n", err)
+			w.Write([]byte(fmt.Sprintf("{\"error\": \"Can't ListEventsMonth:%v\"},\n", err)))
 		}
 		w.Write(jevent)
 		if i+1 == len(eventsFound) {
@@ -187,16 +300,22 @@ func (s *Server) Start(ctx context.Context) error {
 	midLogger := NewMiddlewareLogger()
 	mux := http.NewServeMux()
 
-	mux.Handle("/InsertEventV1", midLogger.setCommonHeadersMiddleware(
-		midLogger.loggingMiddleware(http.HandlerFunc(s.InsertEventV1))))
-	mux.Handle("/UpdateEventV1", midLogger.setCommonHeadersMiddleware(
-		midLogger.loggingMiddleware(http.HandlerFunc(s.UpdateEventV1))))
-	mux.Handle("/DeleteEventV1", midLogger.setCommonHeadersMiddleware(
-		midLogger.loggingMiddleware(http.HandlerFunc(s.DeleteEventV1))))
-	mux.Handle("/LookupEventV1", midLogger.setCommonHeadersMiddleware(
-		midLogger.loggingMiddleware(http.HandlerFunc(s.LookupEventV1))))
-	mux.Handle("/ListEventsV1", midLogger.setCommonHeadersMiddleware(
-		midLogger.loggingMiddleware(http.HandlerFunc(s.ListEventsV1))))
+	mux.Handle("/InsertEvent", midLogger.setCommonHeadersMiddleware(
+		midLogger.loggingMiddleware(http.HandlerFunc(s.InsertEvent))))
+	mux.Handle("/UpdateEvent", midLogger.setCommonHeadersMiddleware(
+		midLogger.loggingMiddleware(http.HandlerFunc(s.UpdateEvent))))
+	mux.Handle("/DeleteEvent", midLogger.setCommonHeadersMiddleware(
+		midLogger.loggingMiddleware(http.HandlerFunc(s.DeleteEvent))))
+	mux.Handle("/LookupEvent", midLogger.setCommonHeadersMiddleware(
+		midLogger.loggingMiddleware(http.HandlerFunc(s.LookupEvent))))
+	mux.Handle("/ListEvents", midLogger.setCommonHeadersMiddleware(
+		midLogger.loggingMiddleware(http.HandlerFunc(s.ListEvents))))
+	mux.Handle("/ListEventsDay", midLogger.setCommonHeadersMiddleware(
+		midLogger.loggingMiddleware(http.HandlerFunc(s.ListEventsDay))))
+	mux.Handle("/ListEventsWeek", midLogger.setCommonHeadersMiddleware(
+		midLogger.loggingMiddleware(http.HandlerFunc(s.ListEventsWeek))))
+	mux.Handle("/ListEventsMonth", midLogger.setCommonHeadersMiddleware(
+		midLogger.loggingMiddleware(http.HandlerFunc(s.ListEventsMonth))))
 
 	// to avoid twice handling
 	mux.HandleFunc("/favicon.ico", s.doNothing)
