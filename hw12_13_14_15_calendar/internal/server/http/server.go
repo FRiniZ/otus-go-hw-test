@@ -134,7 +134,7 @@ func (s *Server) DeleteEvent(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("{\"msg\": \"Deleted\"}\n"))
 }
 
-func (s *Server) LookupEvent(w http.ResponseWriter, r *http.Request) {
+func (s *Server) LookupEvent(w http.ResponseWriter, r *http.Request) { //nolint:dupl
 	var req reqByID
 	if err := s.helperDecode(r.Body, w, &req); err != nil {
 		return
@@ -158,7 +158,7 @@ func (s *Server) LookupEvent(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("\n"))
 }
 
-func (s *Server) ListEvents(w http.ResponseWriter, r *http.Request) {
+func (s *Server) ListEvents(w http.ResponseWriter, r *http.Request) { //nolint:dupl
 	var req reqByUser
 	if err := s.helperDecode(r.Body, w, &req); err != nil {
 		return

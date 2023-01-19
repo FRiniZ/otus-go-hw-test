@@ -18,7 +18,6 @@ var (
 	ErrOffTime        = errors.New("wrong OffTime")
 	ErrNotifyTime     = errors.New("wrong NotifyTime")
 	ErrEventNotFound  = errors.New("event not found")
-	ErrDateBusy       = errors.New("date is busy")
 	ErrTooLongCloseDB = errors.New("too long close db")
 )
 
@@ -44,7 +43,7 @@ type Storage interface {
 	LookupEvent(context.Context, int64) (storage.Event, error)
 	ListEvents(context.Context, int64) ([]storage.Event, error)
 	ListEventsRange(context.Context, int64, time.Time, time.Time) ([]storage.Event, error)
-	IsBusyDateTimeRange(context.Context, int64, int64, time.Time, time.Time) (bool, error)
+	IsBusyDateTimeRange(context.Context, int64, int64, time.Time, time.Time) error
 }
 
 func New(logger Logger, storage Storage) *App {
@@ -89,7 +88,7 @@ func (a *App) checkBasicRules(e *storage.Event, checkID bool) error {
 	return nil
 }
 
-func (a *App) isBusyDateTimeRange(ctx context.Context, id, userID int64, onTime, offTime time.Time) (bool, error) {
+func (a *App) isBusyDateTimeRange(ctx context.Context, id, userID int64, onTime, offTime time.Time) error {
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
 	return a.storage.IsBusyDateTimeRange(ctx, id, userID, onTime, offTime)
@@ -120,10 +119,8 @@ func (a *App) InsertEvent(ctx context.Context, event *storage.Event) error {
 		return err
 	}
 
-	if busy, err := a.isBusyDateTimeRange(ctx, event.ID, event.UserID, event.OnTime, event.OffTime); err != nil {
+	if err := a.isBusyDateTimeRange(ctx, event.ID, event.UserID, event.OnTime, event.OffTime); err != nil {
 		return err
-	} else if busy {
-		return ErrDateBusy
 	}
 
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
@@ -136,10 +133,8 @@ func (a *App) UpdateEvent(ctx context.Context, event *storage.Event) error {
 		return err
 	}
 
-	if busy, err := a.isBusyDateTimeRange(ctx, event.ID, event.UserID, event.OnTime, event.OffTime); err != nil {
+	if err := a.isBusyDateTimeRange(ctx, event.ID, event.UserID, event.OnTime, event.OffTime); err != nil {
 		return err
-	} else if busy {
-		return ErrDateBusy
 	}
 
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)

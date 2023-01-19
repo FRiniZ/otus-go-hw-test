@@ -71,7 +71,7 @@ func TestApp(t *testing.T) {
 			NotifyTime:  event.NotifyTime,
 		}
 		err = app.InsertEvent(ctx, &eventCopy)
-		require.ErrorIs(t, err, ErrDateBusy)
+		require.ErrorIs(t, err, memorystorage.ErrDataRangeIsBusy)
 	})
 
 	t.Run("test_api", func(t *testing.T) {

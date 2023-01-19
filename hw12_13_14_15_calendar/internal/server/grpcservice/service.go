@@ -107,7 +107,8 @@ func (s Service) DeleteEvent(ctx context.Context, req *api.ReqByID) (*emptypb.Em
 }
 
 func (s Service) LookupEvent(ctx context.Context, req *api.ReqByID) (*api.RepEvents, error) {
-	event, err := s.app.LookupEvent(ctx, *req.ID) //nolint:nolintlint
+	event, err := s.app.LookupEvent(ctx, *req.ID)
+	_ = event // to avoid lint err: event declared but not used (typecheck)
 	if err != nil {
 		return nil, err
 	}

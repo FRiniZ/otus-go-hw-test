@@ -16,7 +16,10 @@ type Storage struct {
 	db  *sql.DB
 }
 
-var ErrEventNotFound = errors.New("event not found")
+var (
+	ErrEventNotFound   = errors.New("event not found")
+	ErrDataRangeIsBusy = errors.New("data is busy")
+)
 
 type EventDTO struct {
 	ID          sql.NullInt64
@@ -190,17 +193,9 @@ func (s *Storage) ListEvents(ctx context.Context, userID int64) (events []storag
 	return events, err
 }
 
-/*
-	func (s *Storage) ListEventsWeek(ctx context.Context, userID int64, date time.Time) ([]storage.Event, error) {
-		return s.ListEventsDay(ctx, userID, date)
-	}
-
-	func (s *Storage) ListEventsMonth(ctx context.Context, userID int64, date time.Time) ([]storage.Event, error) {
-		return s.ListEventsDay(ctx, userID, date)
-	}
-*/
-func (s *Storage) ListEventsRange(ctx context.Context, userID int64, begin, end time.Time) (events []storage.Event, err error) {
+func (s *Storage) ListEventsRange(ctx context.Context, userID int64, begin, end time.Time) ([]storage.Event, error) {
 	var e storage.Event
+	var events []storage.Event
 	var eSQL EventDTO
 
 	query := `SELECT id, userid, title, description, ontime, offtime, notifytime
@@ -227,7 +222,7 @@ func (s *Storage) ListEventsRange(ctx context.Context, userID int64, begin, end 
 		return events, fmt.Errorf("failed lookup event: %w", err)
 	}
 
-	return events, err
+	return events, nil
 }
 
 func (s *Storage) LookupEvent(ctx context.Context, eID int64) (e storage.Event, err error) {
@@ -255,7 +250,7 @@ func (s *Storage) LookupEvent(ctx context.Context, eID int64) (e storage.Event, 
 	return e, err
 }
 
-func (s *Storage) IsBusyDateTimeRange(ctx context.Context, id, userID int64, onTime, offTime time.Time) (bool, error) {
+func (s *Storage) IsBusyDateTimeRange(ctx context.Context, id, userID int64, onTime, offTime time.Time) error {
 	var eSQL EventDTO
 	query := `SELECT id
 	          FROM events
@@ -267,14 +262,14 @@ func (s *Storage) IsBusyDateTimeRange(ctx context.Context, id, userID int64, onT
 
 	if err := rows.Scan(&eSQL.ID); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return false, nil
+			return nil
 		}
-		return false, fmt.Errorf("failed rows.Scan: %w", err)
+		return fmt.Errorf("failed rows.Scan: %w", err)
 	}
 
 	if err := rows.Err(); err != nil {
-		return false, fmt.Errorf("failed rows.Next: %w", err)
+		return fmt.Errorf("failed rows.Next: %w", err)
 	}
 
-	return true, nil
+	return ErrDataRangeIsBusy
 }

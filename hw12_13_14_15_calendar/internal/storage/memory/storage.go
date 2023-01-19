@@ -17,7 +17,10 @@ type Storage struct {
 	genID int64
 }
 
-var ErrEventNotFound = errors.New("event not found")
+var (
+	ErrEventNotFound   = errors.New("event not found")
+	ErrDataRangeIsBusy = errors.New("data is busy")
+)
 
 func (s *Storage) getNewIDUnsafe() int64 {
 	ret := s.genID
@@ -49,17 +52,17 @@ func (s *Storage) inTimeSpan(start, end, check time.Time) bool {
 	return false
 }
 
-func (s *Storage) IsBusyDateTimeRange(ctx context.Context, id, userID int64, onTime, offTime time.Time) (bool, error) {
+func (s *Storage) IsBusyDateTimeRange(ctx context.Context, id, userID int64, onTime, offTime time.Time) error {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	for _, v := range s.data {
 		if v.UserID == userID && v.ID != id &&
 			(s.inTimeSpan(v.OnTime, v.OffTime, onTime) ||
 				s.inTimeSpan(v.OnTime, v.OffTime, offTime)) {
-			return true, nil
+			return ErrDataRangeIsBusy
 		}
 	}
-	return false, nil
+	return nil
 }
 
 func (s *Storage) InsertEvent(ctx context.Context, e *storage.Event) error {
@@ -115,22 +118,6 @@ func (s *Storage) ListEventsRange(ctx context.Context, userID int64, begin, end 
 	}
 	return sliceE, nil
 }
-
-/*
-func (s *Storage) ListEventsDay(ctx context.Context, userID int64, date time.Time) ([]storage.Event, error) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-	sliceE := []storage.Event{}
-
-	for _, v := range s.data {
-		if v.UserID == userID && s.inTimeSpan(v.OnTime, v.OffTime, date) {
-			sliceE = append(sliceE, *v)
-		}
-	}
-
-	return sliceE, nil
-}
-*/
 
 func (s *Storage) LookupEvent(ctx context.Context, eID int64) (storage.Event, error) {
 	var event storage.Event
