@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -22,6 +23,8 @@ import (
 	sqlstorage "github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/storage/sql"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/peer"
 )
 
 var configFile string
@@ -66,14 +69,41 @@ func main() {
 		db := sqlstorage.New(config.Storage.DSN)
 		err := db.Connect(ctx)
 		if err != nil {
-			log.Fatalf("Can't connect to storage:%v\n", err) //nolint
+			log.Fatalf("Can't connect to storage:%v\n", err) //nolint:gocritic
 		}
 		idb = db
 	}
 
 	calendar := app.New(log, idb)
 	httpsrv := internalhttp.New(log, calendar, config.HTTPServer, cancel)
-	basesrv := grpc.NewServer(grpc.UnaryInterceptor(grpcservice.UnaryLoggerEnricherInterceptor))
+
+	unarayLoggerEnricherIntercepter := func(ctx context.Context,
+		req interface{},
+		info *grpc.UnaryServerInfo,
+		handler grpc.UnaryHandler) (interface{}, error) { //nolint:gofumpt
+		var b strings.Builder
+		ip, _ := peer.FromContext(ctx)
+		md, ok := metadata.FromIncomingContext(ctx)
+		userAgent := "unknown"
+
+		if ok {
+			userAgent = md["user-agent"][0]
+		}
+
+		b.WriteString(ip.Addr.String())
+		b.WriteString(" ")
+		b.WriteString(time.Now().Format("02/Jan/2006:15:04:05 -0700"))
+		b.WriteString(" ")
+		b.WriteString(info.FullMethod)
+		b.WriteString(" ")
+		b.WriteString(userAgent)
+		b.WriteString("\"\n")
+		log.Infof(b.String())
+
+		return handler(ctx, req)
+	}
+
+	basesrv := grpc.NewServer(grpc.UnaryInterceptor(unarayLoggerEnricherIntercepter))
 	grpcsrv := grpcservice.New(log, calendar, config.GRPSServer, basesrv)
 
 	go func() {

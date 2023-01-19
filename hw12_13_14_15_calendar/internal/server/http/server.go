@@ -91,9 +91,7 @@ func (s *Server) InsertEvent(w http.ResponseWriter, r *http.Request) {
 	if err := s.helperDecode(r.Body, w, &event); err != nil {
 		return
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-	defer cancel()
-	err := s.app.InsertEvent(ctx, &event)
+	err := s.app.InsertEvent(r.Context(), &event)
 	if err != nil {
 		s.log.Errorf("InsertEvent:%v\n", err)
 		w.WriteHeader(http.StatusBadRequest)
@@ -109,9 +107,7 @@ func (s *Server) UpdateEvent(w http.ResponseWriter, r *http.Request) {
 	if err := s.helperDecode(r.Body, w, &event); err != nil {
 		return
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-	defer cancel()
-	err := s.app.UpdateEvent(ctx, &event)
+	err := s.app.UpdateEvent(r.Context(), &event)
 	if err != nil {
 		s.log.Errorf("UpdateEvent:%v\n", err)
 		w.WriteHeader(http.StatusBadRequest)
@@ -127,9 +123,7 @@ func (s *Server) DeleteEvent(w http.ResponseWriter, r *http.Request) {
 	if err := s.helperDecode(r.Body, w, &req); err != nil {
 		return
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-	defer cancel()
-	err := s.app.DeleteEvent(ctx, req.ID)
+	err := s.app.DeleteEvent(r.Context(), req.ID)
 	if err != nil {
 		s.log.Errorf("DeleteEvent:%v\n", err)
 		w.WriteHeader(http.StatusBadRequest)
@@ -145,9 +139,7 @@ func (s *Server) LookupEvent(w http.ResponseWriter, r *http.Request) {
 	if err := s.helperDecode(r.Body, w, &req); err != nil {
 		return
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-	defer cancel()
-	eventFound, err := s.app.LookupEvent(ctx, req.ID)
+	eventFound, err := s.app.LookupEvent(r.Context(), req.ID)
 	if err != nil {
 		s.log.Errorf("LookupEvent:%v\n", err)
 		w.WriteHeader(http.StatusBadRequest)
@@ -171,9 +163,7 @@ func (s *Server) ListEvents(w http.ResponseWriter, r *http.Request) {
 	if err := s.helperDecode(r.Body, w, &req); err != nil {
 		return
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-	defer cancel()
-	eventsFound, err := s.app.ListEvents(ctx, req.UserID)
+	eventsFound, err := s.app.ListEvents(r.Context(), req.UserID)
 	if err != nil {
 		s.log.Errorf("ListEvents:%v\n", err)
 		w.WriteHeader(http.StatusBadRequest)
@@ -198,15 +188,13 @@ func (s *Server) ListEvents(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("]\n"))
 }
 
-func (s *Server) ListEventsDay(w http.ResponseWriter, r *http.Request) { //nolint
-	// lines are duplicate of `internal/server/http/server.go:233-263` (dupl)
+func (s *Server) ListEventsDay(w http.ResponseWriter, r *http.Request) { //nolint:dupl
 	var req reqByUserByDate
 	if err := s.helperDecode(r.Body, w, &req); err != nil {
 		return
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-	defer cancel()
-	eventsFound, err := s.app.ListEventsDay(ctx, req.UserID, req.Date)
+
+	eventsFound, err := s.app.ListEventsDay(r.Context(), req.UserID, req.Date)
 	if err != nil {
 		s.log.Errorf("ListEventsDay:%v\n", err)
 		w.WriteHeader(http.StatusBadRequest)
@@ -231,14 +219,12 @@ func (s *Server) ListEventsDay(w http.ResponseWriter, r *http.Request) { //nolin
 	w.Write([]byte("]\n"))
 }
 
-func (s *Server) ListEventsWeek(w http.ResponseWriter, r *http.Request) { //nolint
+func (s *Server) ListEventsWeek(w http.ResponseWriter, r *http.Request) { //nolint:dupl
 	var req reqByUserByDate
 	if err := s.helperDecode(r.Body, w, &req); err != nil {
 		return
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-	defer cancel()
-	eventsFound, err := s.app.ListEventsWeek(ctx, req.UserID, req.Date)
+	eventsFound, err := s.app.ListEventsWeek(r.Context(), req.UserID, req.Date)
 	if err != nil {
 		s.log.Errorf("ListEventsWeek:%v\n", err)
 		w.WriteHeader(http.StatusBadRequest)
@@ -268,9 +254,7 @@ func (s *Server) ListEventsMonth(w http.ResponseWriter, r *http.Request) { //nol
 	if err := s.helperDecode(r.Body, w, &req); err != nil {
 		return
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-	defer cancel()
-	eventsFound, err := s.app.ListEventsMonth(ctx, req.UserID, req.Date)
+	eventsFound, err := s.app.ListEventsMonth(r.Context(), req.UserID, req.Date)
 	if err != nil {
 		s.log.Errorf("ListEventsMonth:%v\n", err)
 		w.WriteHeader(http.StatusBadRequest)

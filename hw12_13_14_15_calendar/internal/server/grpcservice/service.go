@@ -3,14 +3,11 @@ package grpcservice
 import (
 	context "context"
 	"net"
-	"strings"
 	"time"
 
 	api "github.com/FRiniZ/otus-go-hw-test/hw12_calendar/api/stub"
 	"github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/storage"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/metadata"
-	"google.golang.org/grpc/peer"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -85,8 +82,6 @@ func (Service) EventFromAPIEvent(apiEvent *api.Event) *storage.Event {
 }
 
 func (s Service) InsertEvent(ctx context.Context, req *api.ReqByEvent) (*api.RepID, error) {
-	defer s.Log(ctx)
-
 	event := s.EventFromAPIEvent(req.Event)
 	if err := s.app.InsertEvent(ctx, event); err != nil {
 		return nil, err
@@ -96,7 +91,6 @@ func (s Service) InsertEvent(ctx context.Context, req *api.ReqByEvent) (*api.Rep
 }
 
 func (s Service) UpdateEvent(ctx context.Context, req *api.ReqByEvent) (*api.RepEmpty, error) {
-	defer s.Log(ctx)
 	event := s.EventFromAPIEvent(req.Event)
 	if err := s.app.UpdateEvent(ctx, event); err != nil {
 		return nil, err
@@ -105,7 +99,6 @@ func (s Service) UpdateEvent(ctx context.Context, req *api.ReqByEvent) (*api.Rep
 }
 
 func (s Service) DeleteEvent(ctx context.Context, req *api.ReqByID) (*api.RepEmpty, error) {
-	defer s.Log(ctx)
 	if err := s.app.DeleteEvent(ctx, *req.ID); err != nil {
 		return nil, err
 	}
@@ -113,10 +106,7 @@ func (s Service) DeleteEvent(ctx context.Context, req *api.ReqByID) (*api.RepEmp
 }
 
 func (s Service) LookupEvent(ctx context.Context, req *api.ReqByID) (*api.RepEvents, error) {
-	defer s.Log(ctx)
-
-	event, err := s.app.LookupEvent(ctx, *req.ID)
-	_ = event // to avoid lint err: event declared but not used (typecheck)
+	event, err := s.app.LookupEvent(ctx, *req.ID) //nolint:nolintlint
 	if err != nil {
 		return nil, err
 	}
@@ -127,7 +117,6 @@ func (s Service) LookupEvent(ctx context.Context, req *api.ReqByID) (*api.RepEve
 }
 
 func (s Service) ListEvents(ctx context.Context, req *api.ReqByUser) (*api.RepEvents, error) {
-	defer s.Log(ctx)
 	events, err := s.app.ListEvents(ctx, *req.UserID)
 	if err != nil {
 		return nil, err
@@ -143,7 +132,6 @@ func (s Service) ListEvents(ctx context.Context, req *api.ReqByUser) (*api.RepEv
 }
 
 func (s Service) ListEventsDay(ctx context.Context, req *api.ReqByUserByDate) (*api.RepEvents, error) {
-	defer s.Log(ctx)
 	events, err := s.app.ListEventsDay(ctx, *req.UserID, req.Date.AsTime().Local())
 	if err != nil {
 		return nil, err
@@ -159,7 +147,6 @@ func (s Service) ListEventsDay(ctx context.Context, req *api.ReqByUserByDate) (*
 }
 
 func (s Service) ListEventsWeek(ctx context.Context, req *api.ReqByUserByDate) (*api.RepEvents, error) {
-	defer s.Log(ctx)
 	events, err := s.app.ListEventsWeek(ctx, *req.UserID, req.Date.AsTime().Local())
 	if err != nil {
 		return nil, err
@@ -175,7 +162,6 @@ func (s Service) ListEventsWeek(ctx context.Context, req *api.ReqByUserByDate) (
 }
 
 func (s Service) ListEventsMonth(ctx context.Context, req *api.ReqByUserByDate) (*api.RepEvents, error) {
-	defer s.Log(ctx)
 	events, err := s.app.ListEventsMonth(ctx, *req.UserID, req.Date.AsTime().Local())
 	if err != nil {
 		return nil, err
@@ -217,6 +203,7 @@ func (s *Service) Stop(context.Context) error {
 	return nil
 }
 
+/*
 func UnaryLoggerEnricherInterceptor(
 	ctx context.Context,
 	req interface{},
@@ -250,3 +237,4 @@ func (s *Service) Log(ctx context.Context) {
 
 	s.log.Infof(b.String())
 }
+*/

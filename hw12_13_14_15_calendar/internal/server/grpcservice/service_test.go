@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -15,6 +16,8 @@ import (
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/peer"
 	"google.golang.org/grpc/test/bufconn"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -31,8 +34,7 @@ func helperAPIEvent(id int64, userid int64, onTime, offTime time.Time) *api.Even
 	return &aEvent
 }
 
-func TestGrpcService(t *testing.T) { //nolint
-	// Function 'TestGrpcService' is too long (242 > 150) (funlen)
+func TestGrpcService(t *testing.T) { //nolint:funlen
 	currTime := time.Now()
 	attempt := 10
 	step := 100 // Must be more attempt
@@ -48,7 +50,33 @@ func TestGrpcService(t *testing.T) { //nolint
 	dialer := func() func(context.Context, string) (net.Conn, error) {
 		listener := bufconn.Listen(1024 * 1024)
 
-		server := grpc.NewServer(grpc.UnaryInterceptor(UnaryLoggerEnricherInterceptor))
+		unarayLoggerEnricherIntercepter := func(ctx context.Context,
+			req interface{},
+			info *grpc.UnaryServerInfo,
+			handler grpc.UnaryHandler) (interface{}, error) { //nolint:gofumpt
+			var b strings.Builder
+			ip, _ := peer.FromContext(ctx)
+			md, ok := metadata.FromIncomingContext(ctx)
+			userAgent := "unknown"
+
+			if ok {
+				userAgent = md["user-agent"][0]
+			}
+
+			b.WriteString(ip.Addr.String())
+			b.WriteString(" ")
+			b.WriteString(time.Now().Format("02/Jan/2006:15:04:05 -0700"))
+			b.WriteString(" ")
+			b.WriteString(info.FullMethod)
+			b.WriteString(" ")
+			b.WriteString(userAgent)
+			b.WriteString("\"\n")
+			log.Infof(b.String())
+
+			return handler(ctx, req)
+		}
+
+		server := grpc.NewServer(grpc.UnaryInterceptor(unarayLoggerEnricherIntercepter))
 		grpcsrv := New(log, calendar, conf, server)
 		api.RegisterCalendarServer(server, grpcsrv)
 
