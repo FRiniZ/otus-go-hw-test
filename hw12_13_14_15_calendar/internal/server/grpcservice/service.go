@@ -8,6 +8,7 @@ import (
 	api "github.com/FRiniZ/otus-go-hw-test/hw12_calendar/api/stub"
 	"github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/storage"
 	"google.golang.org/grpc"
+	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -90,19 +91,19 @@ func (s Service) InsertEvent(ctx context.Context, req *api.ReqByEvent) (*api.Rep
 	return &api.RepID{ID: &event.ID}, nil
 }
 
-func (s Service) UpdateEvent(ctx context.Context, req *api.ReqByEvent) (*api.RepEmpty, error) {
+func (s Service) UpdateEvent(ctx context.Context, req *api.ReqByEvent) (*emptypb.Empty, error) {
 	event := s.EventFromAPIEvent(req.Event)
 	if err := s.app.UpdateEvent(ctx, event); err != nil {
 		return nil, err
 	}
-	return &api.RepEmpty{}, nil
+	return &emptypb.Empty{}, nil
 }
 
-func (s Service) DeleteEvent(ctx context.Context, req *api.ReqByID) (*api.RepEmpty, error) {
+func (s Service) DeleteEvent(ctx context.Context, req *api.ReqByID) (*emptypb.Empty, error) {
 	if err := s.app.DeleteEvent(ctx, *req.ID); err != nil {
 		return nil, err
 	}
-	return new(api.RepEmpty), nil
+	return new(emptypb.Empty), nil
 }
 
 func (s Service) LookupEvent(ctx context.Context, req *api.ReqByID) (*api.RepEvents, error) {
@@ -202,39 +203,3 @@ func (s *Service) Stop(context.Context) error {
 	s.log.Infof("GRPC-server shutdown\n")
 	return nil
 }
-
-/*
-func UnaryLoggerEnricherInterceptor(
-	ctx context.Context,
-	req interface{},
-	info *grpc.UnaryServerInfo,
-	handler grpc.UnaryHandler) (interface{}, error) { //nolint
-	ctxV := context.WithValue(ctx, KeyMethodID, info.FullMethod)
-	// Calls the handler
-	h, err := handler(ctxV, req)
-	return h, err
-}
-
-func (s *Service) Log(ctx context.Context) {
-	var b strings.Builder
-	ip, _ := peer.FromContext(ctx)
-	method := ctx.Value(KeyMethodID).(string)
-	md, ok := metadata.FromIncomingContext(ctx)
-	userAgent := "unknown"
-
-	if ok {
-		userAgent = md["user-agent"][0]
-	}
-
-	b.WriteString(ip.Addr.String())
-	b.WriteString(" ")
-	b.WriteString(time.Now().Format("02/Jan/2006:15:04:05 -0700"))
-	b.WriteString(" ")
-	b.WriteString(method)
-	b.WriteString(" ")
-	b.WriteString(userAgent)
-	b.WriteString("\"\n")
-
-	s.log.Infof(b.String())
-}
-*/

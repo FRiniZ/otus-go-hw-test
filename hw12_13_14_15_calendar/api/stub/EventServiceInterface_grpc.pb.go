@@ -11,6 +11,7 @@ import (
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
+	emptypb "google.golang.org/protobuf/types/known/emptypb"
 )
 
 // This is a compile-time assertion to ensure that this generated file
@@ -23,8 +24,8 @@ const _ = grpc.SupportPackageIsVersion7
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type CalendarClient interface {
 	InsertEvent(ctx context.Context, in *ReqByEvent, opts ...grpc.CallOption) (*RepID, error)
-	UpdateEvent(ctx context.Context, in *ReqByEvent, opts ...grpc.CallOption) (*RepEmpty, error)
-	DeleteEvent(ctx context.Context, in *ReqByID, opts ...grpc.CallOption) (*RepEmpty, error)
+	UpdateEvent(ctx context.Context, in *ReqByEvent, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	DeleteEvent(ctx context.Context, in *ReqByID, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	LookupEvent(ctx context.Context, in *ReqByID, opts ...grpc.CallOption) (*RepEvents, error)
 	ListEvents(ctx context.Context, in *ReqByUser, opts ...grpc.CallOption) (*RepEvents, error)
 	ListEventsDay(ctx context.Context, in *ReqByUserByDate, opts ...grpc.CallOption) (*RepEvents, error)
@@ -49,8 +50,8 @@ func (c *calendarClient) InsertEvent(ctx context.Context, in *ReqByEvent, opts .
 	return out, nil
 }
 
-func (c *calendarClient) UpdateEvent(ctx context.Context, in *ReqByEvent, opts ...grpc.CallOption) (*RepEmpty, error) {
-	out := new(RepEmpty)
+func (c *calendarClient) UpdateEvent(ctx context.Context, in *ReqByEvent, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	out := new(emptypb.Empty)
 	err := c.cc.Invoke(ctx, "/api.Calendar/UpdateEvent", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -58,8 +59,8 @@ func (c *calendarClient) UpdateEvent(ctx context.Context, in *ReqByEvent, opts .
 	return out, nil
 }
 
-func (c *calendarClient) DeleteEvent(ctx context.Context, in *ReqByID, opts ...grpc.CallOption) (*RepEmpty, error) {
-	out := new(RepEmpty)
+func (c *calendarClient) DeleteEvent(ctx context.Context, in *ReqByID, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	out := new(emptypb.Empty)
 	err := c.cc.Invoke(ctx, "/api.Calendar/DeleteEvent", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -117,8 +118,8 @@ func (c *calendarClient) ListEventsMonth(ctx context.Context, in *ReqByUserByDat
 // for forward compatibility
 type CalendarServer interface {
 	InsertEvent(context.Context, *ReqByEvent) (*RepID, error)
-	UpdateEvent(context.Context, *ReqByEvent) (*RepEmpty, error)
-	DeleteEvent(context.Context, *ReqByID) (*RepEmpty, error)
+	UpdateEvent(context.Context, *ReqByEvent) (*emptypb.Empty, error)
+	DeleteEvent(context.Context, *ReqByID) (*emptypb.Empty, error)
 	LookupEvent(context.Context, *ReqByID) (*RepEvents, error)
 	ListEvents(context.Context, *ReqByUser) (*RepEvents, error)
 	ListEventsDay(context.Context, *ReqByUserByDate) (*RepEvents, error)
@@ -134,10 +135,10 @@ type UnimplementedCalendarServer struct {
 func (UnimplementedCalendarServer) InsertEvent(context.Context, *ReqByEvent) (*RepID, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method InsertEvent not implemented")
 }
-func (UnimplementedCalendarServer) UpdateEvent(context.Context, *ReqByEvent) (*RepEmpty, error) {
+func (UnimplementedCalendarServer) UpdateEvent(context.Context, *ReqByEvent) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdateEvent not implemented")
 }
-func (UnimplementedCalendarServer) DeleteEvent(context.Context, *ReqByID) (*RepEmpty, error) {
+func (UnimplementedCalendarServer) DeleteEvent(context.Context, *ReqByID) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteEvent not implemented")
 }
 func (UnimplementedCalendarServer) LookupEvent(context.Context, *ReqByID) (*RepEvents, error) {

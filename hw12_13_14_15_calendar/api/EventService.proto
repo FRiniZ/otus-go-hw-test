@@ -33,10 +33,6 @@ message ReqByUserByDate {
     optional google.protobuf.Timestamp  Date         = 2;
 }
 
-message RepEmpty {
-
-}
-
 message RepID {
     optional int64    ID = 1;
 }
