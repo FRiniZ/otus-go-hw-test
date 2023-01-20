@@ -4,6 +4,8 @@ DOCKER_IMG="calendar:develop"
 GIT_HASH := $(shell git log --format="%h" -n 1)
 LDFLAGS := -X main.release="develop" -X main.buildDate=$(shell date -u +%Y-%m-%dT%H:%M:%S) -X main.gitHash=$(GIT_HASH)
 
+RABBITMQNAME := rabbitmq
+
 generate:
 	go generate ./...
 
@@ -34,6 +36,12 @@ install-lint-deps:
 lint: install-lint-deps
 	golangci-lint run ./...
 
+stop_rabbitmq:
+	docker stop $(RABBITMQNAME)
+
+
+run_rabbitmq:
+	docker run -d --rm --name $(RABBITMQNAME) -e RABBITMQ_DEFAULT_USER=root -e RABBITMQ_DEFAULT_PASS=secretkey -p 15672:15672 -p 5672:5672 rabbitmq:3-management
 
 run_postgres:
 	docker run -d --rm --name postgres -e POSTGRES_USER=root -e POSTGRES_PASSWORD=secretkey -e PGDATA=/var/lib/postgresql/data/pgdata -v psqldata:/var/lib/postgresql/data -p 5432:5432 postgres
