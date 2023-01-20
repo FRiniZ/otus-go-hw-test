@@ -8,7 +8,7 @@ import (
 
 	"github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/model"
 	"github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/storage"
-	"github.com/rabbitmq/amqp091-go"
+	amqp091 "github.com/rabbitmq/amqp091-go"
 )
 
 type Conf struct {
