@@ -330,7 +330,6 @@ func (s *Storage) DeleteEventsOlderDate(ctx context.Context, date time.Time) (in
 	          WHERE offtime < $1`
 
 	res, err := s.db.ExecContext(ctx, query, date)
-
 	if err != nil {
 		return 0, fmt.Errorf("failed delete event: %w", err)
 	}

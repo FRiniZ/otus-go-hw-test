@@ -11,8 +11,9 @@ import (
 
 func main() {
 	config := NewConfig()
-	calendar := app.NewCalendar(config.CalendarConf)
 
+	calendar := app.NewCalendar(config.CalendarConf)
 	calendar.Run()
+
 	fmt.Println("calendar stopped")
 }

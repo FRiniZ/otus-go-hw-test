@@ -256,7 +256,6 @@ func (s *Server) ListEventsMonth(w http.ResponseWriter, r *http.Request) { //nol
 }
 
 func (s *Server) Start(ctx context.Context) error {
-
 	addr := net.JoinHostPort(s.conf.Host, s.conf.Port)
 	midLogger := NewMiddlewareLogger()
 	mux := http.NewServeMux()

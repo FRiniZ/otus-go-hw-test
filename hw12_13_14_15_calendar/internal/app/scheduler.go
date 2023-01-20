@@ -45,14 +45,13 @@ type SchedulerProducer interface {
 func NewScheduler(conf SchedulerConf) *Scheduler {
 	var db SchedulerStorage
 
-	log, err := logger.New(conf.Logger.Level, os.Stdout)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Can't allocate logger:%v\n", err)
-		os.Exit(1)
-	}
-
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
+
+	log, err := logger.New(conf.Logger.Level, os.Stdout)
+	if err != nil {
+		exitfail(fmt.Sprintf("Can't allocate logger:%v\n", err))
+	}
 
 	switch conf.Storage.DB {
 	case "in-memory":
@@ -60,17 +59,15 @@ func NewScheduler(conf SchedulerConf) *Scheduler {
 	case "sql":
 		db = sqlstorage.New(conf.Storage.DSN)
 	}
+
 	err = db.Connect(ctx)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Can't connect to storage:%v\n", err) //nolint:gocritic
-		os.Exit(1)
+		exitfail(fmt.Sprintf("Can't connect to storage:%v", err))
 	}
 
 	producer := internalrmq.NewProducer(log, conf.RabbitMQ)
-
 	if err := producer.Connect(ctx); err != nil {
-		fmt.Fprintf(os.Stderr, "Can't connect to RabbitMQ:%v\n", err)
-		os.Exit(1)
+		exitfail(fmt.Sprintf("Can't connect to RabbitMQ:%v", err))
 	}
 
 	return &Scheduler{
@@ -86,8 +83,7 @@ func (s Scheduler) Run() {
 		syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
 	defer cancel()
 
-	d := time.Duration(s.conf.Period)
-	ticker := time.NewTicker(d)
+	ticker := time.NewTicker(s.conf.Period)
 	defer ticker.Stop()
 
 	for {
@@ -102,20 +98,20 @@ func (s Scheduler) Run() {
 			// TODO Должны ли мы завершить работу если процесс возвращает ошибку?
 			date := time.Now()
 			s.log.Debugf("Starting notification process...\n")
-			if sent, err := s.SendNotification(ctx, date); err != nil {
+			sent, err := s.SendNotification(ctx, date)
+			if err != nil {
 				s.log.Errorf("%v", err)
 				return
-			} else {
-				s.log.Debugf("Notifications  sent:%v\n", sent)
 			}
+			s.log.Debugf("Notifications  sent:%v\n", sent)
 
 			s.log.Debugf("Starting to remove events that are older than a year\n")
-			if deleted, err := s.DeleteEventsOlderDate(ctx, date.AddDate(-1, 0, 0)); err != nil {
+			deleted, err := s.DeleteEventsOlderDate(ctx, date.AddDate(-1, 0, 0))
+			if err != nil {
 				s.log.Errorf("%v", err)
 				return
-			} else {
-				s.log.Debugf("Old events deleted:%v\n", deleted)
 			}
+			s.log.Debugf("Old events deleted:%v\n", deleted)
 			s.log.Debugf("Notification process has finished\n")
 		}
 	}
@@ -139,8 +135,8 @@ func (s Scheduler) SendNotification(ctx context.Context, date time.Time) (int64,
 		return sent, err
 	}
 
-	for _, e := range events {
-		err := s.producer.SendNotification(ctx, &e)
+	for i := range events {
+		err := s.producer.SendNotification(ctx, &events[i])
 		if err != nil {
 			return sent, fmt.Errorf("SendNotification:%w", err)
 		}

@@ -31,9 +31,7 @@ type Logger interface {
 	Debugf(format string, a ...interface{})
 }
 
-var (
-	ErrCantSendMsg = errors.New("can't send message")
-)
+var ErrCantSendMsg = errors.New("can't send message")
 
 func NewProducer(log Logger, conf Conf) *Producer {
 	return &Producer{log: log, conf: conf}

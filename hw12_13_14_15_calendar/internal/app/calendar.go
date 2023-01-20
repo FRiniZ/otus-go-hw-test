@@ -12,7 +12,6 @@ import (
 	"time"
 
 	logger "github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/logger"
-	"github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/server/grpcservice"
 	internalgrpc "github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/server/grpcservice"
 	internalhttp "github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/server/http"
 	"github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/storage"
@@ -214,20 +213,20 @@ func NewCalendar(conf CalendarConf) *Calendar {
 	}
 	calendar.log = log
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
 	switch conf.Storage.DB {
 	case "in-memory":
 		calendar.storage = memorystorage.New()
 	case "sql":
 		calendar.storage = sqlstorage.New(conf.Storage.DSN)
 	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	err = calendar.storage.Connect(ctx)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Can't connect to storage:%v\n", err) //nolint:gocritic
+		fmt.Fprintf(os.Stderr, "Can't connect to storage:%v\n", err)
 		os.Exit(1)
 	}
+	defer cancel()
 
 	calendar.httpsrv = internalhttp.New(log, calendar, conf.HTTPServer)
 
@@ -257,13 +256,12 @@ func NewCalendar(conf CalendarConf) *Calendar {
 	}
 
 	basesrv := grpc.NewServer(grpc.UnaryInterceptor(unarayLoggerEnricherIntercepter))
-	calendar.grpcsrv = grpcservice.New(log, calendar, conf.GRPSServer, basesrv)
+	calendar.grpcsrv = internalgrpc.New(log, calendar, conf.GRPSServer, basesrv)
 
 	return calendar
 }
 
 func (c Calendar) Run() {
-
 	ctx, cancel := signal.NotifyContext(context.Background(),
 		syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
 	defer cancel()

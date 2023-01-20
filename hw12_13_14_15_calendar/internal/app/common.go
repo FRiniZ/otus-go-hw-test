@@ -2,6 +2,8 @@ package app
 
 import (
 	"errors"
+	"fmt"
+	"os"
 )
 
 var (
@@ -22,4 +24,9 @@ type Logger interface {
 	Warningf(format string, a ...interface{})
 	Infof(format string, a ...interface{})
 	Debugf(format string, a ...interface{})
+}
+
+func exitfail(msg string) {
+	fmt.Fprintln(os.Stderr, msg)
+	os.Exit(1)
 }
