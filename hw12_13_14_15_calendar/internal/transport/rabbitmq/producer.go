@@ -7,17 +7,12 @@ import (
 	"fmt"
 
 	"github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/model"
-	"github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/storage"
 	amqp091 "github.com/rabbitmq/amqp091-go"
 )
 
-type Conf struct {
-	URL string `toml:"url"`
-}
-
 type Producer struct {
 	log     Logger
-	conf    Conf
+	url     string
 	channel *amqp091.Channel
 	connect *amqp091.Connection
 	queue   amqp091.Queue
@@ -33,14 +28,14 @@ type Logger interface {
 
 var ErrCantSendMsg = errors.New("can't send message")
 
-func NewProducer(log Logger, conf Conf) *Producer {
-	return &Producer{log: log, conf: conf}
+func NewProducer(log Logger, url string) *Producer {
+	return &Producer{log: log, url: url}
 }
 
 func (c *Producer) Connect(ctx context.Context) error {
 	var err error
 	c.log.Debugf("Connecting to RabbitMQ...\n")
-	c.connect, err = amqp091.Dial(c.conf.URL)
+	c.connect, err = amqp091.Dial(c.url)
 	if err != nil {
 		return err
 	}
@@ -66,7 +61,7 @@ func (c *Producer) Close(ctx context.Context) error {
 	return nil
 }
 
-func (c *Producer) SendNotification(ctx context.Context, event *storage.Event) error {
+func (c *Producer) SendNotification(ctx context.Context, event *model.Event) error {
 	msg := model.NotificationMsg{
 		ID:     event.ID,
 		Title:  event.Title,

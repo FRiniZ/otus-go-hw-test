@@ -12,11 +12,10 @@ import (
 	"time"
 
 	logger "github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/logger"
+	"github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/model"
 	internalgrpc "github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/server/grpcservice"
 	internalhttp "github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/server/http"
 	"github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/storage"
-	memorystorage "github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/storage/memory"
-	sqlstorage "github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/storage/sql"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
@@ -41,16 +40,16 @@ type Calendar struct {
 type CalendarStorage interface {
 	Connect(context.Context) error
 	Close(context.Context) error
-	InsertEvent(context.Context, *storage.Event) error
-	UpdateEvent(context.Context, *storage.Event) error
+	InsertEvent(context.Context, *model.Event) error
+	UpdateEvent(context.Context, *model.Event) error
 	DeleteEvent(context.Context, int64) error
-	LookupEvent(context.Context, int64) (storage.Event, error)
-	ListEvents(context.Context, int64) ([]storage.Event, error)
-	ListEventsRange(context.Context, int64, time.Time, time.Time) ([]storage.Event, error)
+	LookupEvent(context.Context, int64) (model.Event, error)
+	ListEvents(context.Context, int64) ([]model.Event, error)
+	ListEventsRange(context.Context, int64, time.Time, time.Time) ([]model.Event, error)
 	IsBusyDateTimeRange(context.Context, int64, int64, time.Time, time.Time) error
 }
 
-func (c *Calendar) checkBasicRules(e *storage.Event, checkID bool) error {
+func (c *Calendar) checkBasicRules(e *model.Event, checkID bool) error {
 	if checkID && e.ID == 0 {
 		return fmt.Errorf("%w: zero", ErrID)
 	}
@@ -111,7 +110,7 @@ func (c *Calendar) Close(ctx context.Context) error {
 	return c.storage.Close(ctx)
 }
 
-func (c *Calendar) InsertEvent(ctx context.Context, event *storage.Event) error {
+func (c *Calendar) InsertEvent(ctx context.Context, event *model.Event) error {
 	if err := c.checkBasicRules(event, false); err != nil {
 		return err
 	}
@@ -126,7 +125,7 @@ func (c *Calendar) InsertEvent(ctx context.Context, event *storage.Event) error 
 	return c.storage.InsertEvent(ctx, event)
 }
 
-func (c *Calendar) UpdateEvent(ctx context.Context, event *storage.Event) error {
+func (c *Calendar) UpdateEvent(ctx context.Context, event *model.Event) error {
 	if err := c.checkBasicRules(event, true); err != nil {
 		return err
 	}
@@ -146,36 +145,36 @@ func (c *Calendar) DeleteEvent(ctx context.Context, id int64) error {
 	return c.storage.DeleteEvent(ctx, id)
 }
 
-func (c *Calendar) LookupEvent(ctx context.Context, id int64) (storage.Event, error) {
+func (c *Calendar) LookupEvent(ctx context.Context, id int64) (model.Event, error) {
 	if id == 0 {
-		return storage.Event{}, ErrID
+		return model.Event{}, ErrID
 	}
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
 	return c.storage.LookupEvent(ctx, id)
 }
 
-func (c *Calendar) ListEvents(ctx context.Context, userID int64) ([]storage.Event, error) {
+func (c *Calendar) ListEvents(ctx context.Context, userID int64) ([]model.Event, error) {
 	if userID == 0 {
-		return []storage.Event{}, ErrUserID
+		return []model.Event{}, ErrUserID
 	}
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
 	return c.storage.ListEvents(ctx, userID)
 }
 
-func (c *Calendar) ListEventsDay(ctx context.Context, userID int64, date time.Time) ([]storage.Event, error) {
+func (c *Calendar) ListEventsDay(ctx context.Context, userID int64, date time.Time) ([]model.Event, error) {
 	if userID == 0 {
-		return []storage.Event{}, ErrUserID
+		return []model.Event{}, ErrUserID
 	}
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
 	return c.storage.ListEventsRange(ctx, userID, date, date)
 }
 
-func (c *Calendar) ListEventsWeek(ctx context.Context, userID int64, date time.Time) ([]storage.Event, error) {
+func (c *Calendar) ListEventsWeek(ctx context.Context, userID int64, date time.Time) ([]model.Event, error) {
 	if userID == 0 {
-		return []storage.Event{}, ErrUserID
+		return []model.Event{}, ErrUserID
 	}
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
@@ -184,9 +183,9 @@ func (c *Calendar) ListEventsWeek(ctx context.Context, userID int64, date time.T
 	return c.storage.ListEventsRange(ctx, userID, monday, sunday)
 }
 
-func (c *Calendar) ListEventsMonth(ctx context.Context, userID int64, date time.Time) ([]storage.Event, error) {
+func (c *Calendar) ListEventsMonth(ctx context.Context, userID int64, date time.Time) ([]model.Event, error) {
 	if userID == 0 {
-		return []storage.Event{}, ErrUserID
+		return []model.Event{}, ErrUserID
 	}
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
@@ -195,33 +194,11 @@ func (c *Calendar) ListEventsMonth(ctx context.Context, userID int64, date time.
 	return c.storage.ListEventsRange(ctx, userID, dayFirst, dayLast)
 }
 
-/*
-	func (c *Calendar) ListEventsDayOfNotice(ctx context.Context, date time.Time) ([]storage.Event, error) {
-		ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
-		defer cancel()
-		return c.storage.ListEventsDayOfNotice(ctx, date)
-	}
-*/
-
-func NewCalendar(conf CalendarConf) *Calendar {
-	calendar := &Calendar{conf: conf}
-
-	log, err := logger.New(conf.Logger.Level, os.Stdout)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Can't allocate logger:%v\n", err)
-		os.Exit(1)
-	}
-	calendar.log = log
-
-	switch conf.Storage.DB {
-	case "in-memory":
-		calendar.storage = memorystorage.New()
-	case "sql":
-		calendar.storage = sqlstorage.New(conf.Storage.DSN)
-	}
+func NewCalendar(log Logger, conf CalendarConf, storage CalendarStorage) *Calendar {
+	calendar := &Calendar{log: log, conf: conf, storage: storage}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	err = calendar.storage.Connect(ctx)
+	err := calendar.storage.Connect(ctx)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Can't connect to storage:%v\n", err)
 		os.Exit(1)

@@ -5,14 +5,19 @@ package main
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/app"
+	"github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/logger"
+	"github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/storage"
 )
 
 func main() {
 	config := NewConfig()
+	storage := storage.NewStorage(config.Storage)
+	logger := logger.NewLogger(config.Logger.Level, os.Stdout)
+	calendar := app.NewCalendar(logger, config.CalendarConf, storage)
 
-	calendar := app.NewCalendar(config.CalendarConf)
 	calendar.Run()
 
 	fmt.Println("calendar stopped")

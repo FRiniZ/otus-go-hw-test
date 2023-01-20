@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/storage"
+	"github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/model"
 )
 
 type ctxKeyID int
@@ -39,14 +39,14 @@ type Logger interface {
 }
 
 type Application interface {
-	InsertEvent(context.Context, *storage.Event) error
-	UpdateEvent(context.Context, *storage.Event) error
+	InsertEvent(context.Context, *model.Event) error
+	UpdateEvent(context.Context, *model.Event) error
 	DeleteEvent(context.Context, int64) error
-	LookupEvent(context.Context, int64) (storage.Event, error)
-	ListEvents(context.Context, int64) ([]storage.Event, error)
-	ListEventsDay(context.Context, int64, time.Time) ([]storage.Event, error)
-	ListEventsWeek(context.Context, int64, time.Time) ([]storage.Event, error)
-	ListEventsMonth(context.Context, int64, time.Time) ([]storage.Event, error)
+	LookupEvent(context.Context, int64) (model.Event, error)
+	ListEvents(context.Context, int64) ([]model.Event, error)
+	ListEventsDay(context.Context, int64, time.Time) ([]model.Event, error)
+	ListEventsWeek(context.Context, int64, time.Time) ([]model.Event, error)
+	ListEventsMonth(context.Context, int64, time.Time) ([]model.Event, error)
 }
 
 type reqByID struct {
@@ -82,7 +82,7 @@ func (s *Server) helperDecode(stream io.ReadCloser, w http.ResponseWriter, data 
 }
 
 func (s *Server) InsertEvent(w http.ResponseWriter, r *http.Request) {
-	var event storage.Event
+	var event model.Event
 	if err := s.helperDecode(r.Body, w, &event); err != nil {
 		return
 	}
@@ -99,7 +99,7 @@ func (s *Server) InsertEvent(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) UpdateEvent(w http.ResponseWriter, r *http.Request) {
-	var event storage.Event
+	var event model.Event
 	if err := s.helperDecode(r.Body, w, &event); err != nil {
 		return
 	}

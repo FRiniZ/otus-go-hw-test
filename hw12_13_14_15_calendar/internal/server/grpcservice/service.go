@@ -6,7 +6,7 @@ import (
 	"time"
 
 	api "github.com/FRiniZ/otus-go-hw-test/hw12_calendar/api/stub"
-	"github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/storage"
+	"github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/model"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -32,14 +32,14 @@ type Logger interface {
 }
 
 type Application interface {
-	InsertEvent(context.Context, *storage.Event) error
-	UpdateEvent(context.Context, *storage.Event) error
+	InsertEvent(context.Context, *model.Event) error
+	UpdateEvent(context.Context, *model.Event) error
 	DeleteEvent(context.Context, int64) error
-	LookupEvent(context.Context, int64) (storage.Event, error)
-	ListEvents(context.Context, int64) ([]storage.Event, error)
-	ListEventsDay(context.Context, int64, time.Time) ([]storage.Event, error)
-	ListEventsWeek(context.Context, int64, time.Time) ([]storage.Event, error)
-	ListEventsMonth(context.Context, int64, time.Time) ([]storage.Event, error)
+	LookupEvent(context.Context, int64) (model.Event, error)
+	ListEvents(context.Context, int64) ([]model.Event, error)
+	ListEventsDay(context.Context, int64, time.Time) ([]model.Event, error)
+	ListEventsWeek(context.Context, int64, time.Time) ([]model.Event, error)
+	ListEventsMonth(context.Context, int64, time.Time) ([]model.Event, error)
 }
 
 type Service struct {
@@ -50,7 +50,7 @@ type Service struct {
 	api.UnimplementedCalendarServer
 }
 
-func (Service) APIEventFromEvent(event *storage.Event) *api.Event {
+func (Service) APIEventFromEvent(event *model.Event) *api.Event {
 	return &api.Event{
 		ID:          &event.ID,
 		UserID:      &event.UserID,
@@ -62,8 +62,8 @@ func (Service) APIEventFromEvent(event *storage.Event) *api.Event {
 	}
 }
 
-func (Service) EventFromAPIEvent(apiEvent *api.Event) *storage.Event {
-	event := storage.Event{}
+func (Service) EventFromAPIEvent(apiEvent *api.Event) *model.Event {
+	event := model.Event{}
 
 	event.ID = *apiEvent.ID
 	event.UserID = *apiEvent.UserID

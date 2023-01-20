@@ -3,23 +3,20 @@ package app
 import (
 	"context"
 	"fmt"
-	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
 	logger "github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/logger"
+	"github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/model"
 	"github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/storage"
-	memorystorage "github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/storage/memory"
-	sqlstorage "github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/storage/sql"
-	internalrmq "github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/transport/rabbitmq"
 )
 
 type SchedulerConf struct {
-	Logger   logger.Conf      `toml:"logger"`
-	Storage  storage.Conf     `toml:"storage"`
-	RabbitMQ internalrmq.Conf `toml:"rabbitmq"`
-	Period   time.Duration    `toml:"period"`
+	Logger  logger.Conf   `toml:"logger"`
+	Storage storage.Conf  `toml:"storage"`
+	UrlRMQ  string        `toml:"url_rmq"`
+	Period  time.Duration `toml:"period"`
 }
 
 type Scheduler struct {
@@ -32,50 +29,37 @@ type Scheduler struct {
 type SchedulerStorage interface {
 	Connect(context.Context) error
 	Close(context.Context) error
-	ListEventsDayOfNotice(context.Context, time.Time) ([]storage.Event, error)
+	ListEventsDayOfNotice(context.Context, time.Time) ([]model.Event, error)
 	DeleteEventsOlderDate(context.Context, time.Time) (int64, error)
 }
 
 type SchedulerProducer interface {
 	Connect(context.Context) error
 	Close(context.Context) error
-	SendNotification(context.Context, *storage.Event) error
+	SendNotification(context.Context, *model.Event) error
 }
 
-func NewScheduler(conf SchedulerConf) *Scheduler {
-	var db SchedulerStorage
+func NewScheduler(log Logger, conf SchedulerConf, storage SchedulerStorage, producer SchedulerProducer) *Scheduler {
+	scheduler := &Scheduler{
+		conf:     conf,
+		log:      log,
+		storage:  storage,
+		producer: producer,
+	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	log, err := logger.New(conf.Logger.Level, os.Stdout)
-	if err != nil {
-		exitfail(fmt.Sprintf("Can't allocate logger:%v\n", err))
-	}
-
-	switch conf.Storage.DB {
-	case "in-memory":
-		db = memorystorage.New()
-	case "sql":
-		db = sqlstorage.New(conf.Storage.DSN)
-	}
-
-	err = db.Connect(ctx)
+	err := storage.Connect(ctx)
 	if err != nil {
 		exitfail(fmt.Sprintf("Can't connect to storage:%v", err))
 	}
 
-	producer := internalrmq.NewProducer(log, conf.RabbitMQ)
 	if err := producer.Connect(ctx); err != nil {
 		exitfail(fmt.Sprintf("Can't connect to RabbitMQ:%v", err))
 	}
 
-	return &Scheduler{
-		conf:     conf,
-		log:      log,
-		storage:  db,
-		producer: producer,
-	}
+	return scheduler
 }
 
 func (s Scheduler) Run() {

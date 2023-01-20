@@ -6,10 +6,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/storage"
+	"github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/model"
 )
 
-type mapEvent map[int64]*storage.Event
+type mapEvent map[int64]*model.Event
 
 type Storage struct {
 	data  mapEvent
@@ -65,7 +65,7 @@ func (s *Storage) IsBusyDateTimeRange(ctx context.Context, id, userID int64, onT
 	return nil
 }
 
-func (s *Storage) InsertEvent(ctx context.Context, e *storage.Event) error {
+func (s *Storage) InsertEvent(ctx context.Context, e *model.Event) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	e.ID = s.getNewIDUnsafe()
@@ -73,7 +73,7 @@ func (s *Storage) InsertEvent(ctx context.Context, e *storage.Event) error {
 	return nil
 }
 
-func (s *Storage) UpdateEvent(ctx context.Context, e *storage.Event) error {
+func (s *Storage) UpdateEvent(ctx context.Context, e *model.Event) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if _, ok := s.data[e.ID]; !ok {
@@ -91,10 +91,10 @@ func (s *Storage) DeleteEvent(ctx context.Context, id int64) error {
 	return nil
 }
 
-func (s *Storage) ListEvents(ctx context.Context, userID int64) ([]storage.Event, error) {
+func (s *Storage) ListEvents(ctx context.Context, userID int64) ([]model.Event, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	sliceE := []storage.Event{}
+	sliceE := []model.Event{}
 	for _, v := range s.data {
 		if v.UserID == userID {
 			sliceE = append(sliceE, *v)
@@ -104,10 +104,10 @@ func (s *Storage) ListEvents(ctx context.Context, userID int64) ([]storage.Event
 	return sliceE, nil
 }
 
-func (s *Storage) ListEventsRange(ctx context.Context, userID int64, begin, end time.Time) ([]storage.Event, error) {
+func (s *Storage) ListEventsRange(ctx context.Context, userID int64, begin, end time.Time) ([]model.Event, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	sliceE := []storage.Event{}
+	sliceE := []model.Event{}
 
 	for _, v := range s.data {
 		if v.UserID == userID &&
@@ -119,8 +119,8 @@ func (s *Storage) ListEventsRange(ctx context.Context, userID int64, begin, end 
 	return sliceE, nil
 }
 
-func (s *Storage) LookupEvent(ctx context.Context, eID int64) (storage.Event, error) {
-	var event storage.Event
+func (s *Storage) LookupEvent(ctx context.Context, eID int64) (model.Event, error) {
+	var event model.Event
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	if e, ok := s.data[eID]; ok {
@@ -131,10 +131,10 @@ func (s *Storage) LookupEvent(ctx context.Context, eID int64) (storage.Event, er
 	return event, ErrEventNotFound
 }
 
-func (s *Storage) ListEventsDayOfNotice(ctx context.Context, date time.Time) ([]storage.Event, error) {
+func (s *Storage) ListEventsDayOfNotice(ctx context.Context, date time.Time) ([]model.Event, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	sliceE := []storage.Event{}
+	sliceE := []model.Event{}
 
 	for _, v := range s.data {
 		if !v.Notified && (v.NotifyTime.Before(date) || v.NotifyTime.Equal(date)) {

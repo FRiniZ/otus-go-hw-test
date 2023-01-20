@@ -1,5 +1,6 @@
 #Scheduler
 period = "1m"
+url_rmq = "amqp://root:secretkey@localhost:5672/"
 
 [logger]
 level = "DEBUG"
@@ -9,8 +10,6 @@ level = "DEBUG"
 db = "sql"
 dsn = "postgresql://root:secretkey@localhost:5432/calendar?sslmode=disable"
 
-[rabbitmq]
-url = "amqp://root:secretkey@localhost:5672/"
 
 # TODO
 # ...
