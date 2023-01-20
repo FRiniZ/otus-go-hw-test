@@ -18,6 +18,10 @@ const (
 
 var ErrLogLevel = errors.New("unrecognized log_level")
 
+type Conf struct {
+	Level string `toml:"level"`
+}
+
 type Logger struct {
 	logLevel int
 	out      io.Writer

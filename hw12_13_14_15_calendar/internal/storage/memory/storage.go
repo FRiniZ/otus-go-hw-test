@@ -130,3 +130,26 @@ func (s *Storage) LookupEvent(ctx context.Context, eID int64) (storage.Event, er
 
 	return event, ErrEventNotFound
 }
+
+func (s *Storage) ListEventsDayOfNotice(ctx context.Context, date time.Time) ([]storage.Event, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	sliceE := []storage.Event{}
+
+	for _, v := range s.data {
+		if !v.Notified && (v.NotifyTime.Before(date) || v.NotifyTime.Equal(date)) {
+			sliceE = append(sliceE, *v)
+		}
+	}
+	return sliceE, nil
+}
+
+func (s *Storage) UpdateEventNotified(ctx context.Context, eventid int64) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if _, ok := s.data[eventid]; !ok {
+		return ErrEventNotFound
+	}
+	s.data[eventid].Notified = true
+	return nil
+}

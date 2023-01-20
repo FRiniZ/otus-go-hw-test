@@ -1,4 +1,6 @@
-BIN := "./bin/calendar"
+BIN1 := "./bin/calendar"
+BIN2 := "./bin/calendar_scheduler"
+
 DOCKER_IMG="calendar:develop"
 
 GIT_HASH := $(shell git log --format="%h" -n 1)
@@ -10,10 +12,11 @@ generate:
 	go generate ./...
 
 build:
-	go build -v -o $(BIN) -ldflags "$(LDFLAGS)" ./cmd/calendar
+	go build -v -o $(BIN1) -ldflags "$(LDFLAGS)" ./cmd/calendar
+	go build -v -o $(BIN2) -ldflags "$(LDFLAGS)" ./cmd/scheduler
 
 run: build
-	$(BIN) -config ./configs/config.toml
+	$(BIN1) -config=./configs/calendar_config.toml
 
 build-img:
 	docker build \

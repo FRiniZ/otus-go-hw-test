@@ -23,16 +23,11 @@ type Conf struct {
 	Port string `toml:"port"`
 }
 
-type ResponceErr struct {
-	Msg string
-}
-
 type Server struct {
-	srv    http.Server
-	log    Logger
-	app    Application
-	conf   Conf
-	cancel context.CancelFunc
+	srv  http.Server
+	log  Logger
+	app  Application
+	conf Conf
 }
 
 type Logger interface {
@@ -68,7 +63,7 @@ type reqByUserByDate struct {
 }
 
 func New(log Logger, app Application, conf Conf, cancel context.CancelFunc) *Server {
-	return &Server{log: log, app: app, conf: conf, cancel: cancel}
+	return &Server{log: log, app: app, conf: conf}
 }
 
 func (s *Server) doNothing(w http.ResponseWriter, r *http.Request) {
@@ -91,6 +86,7 @@ func (s *Server) InsertEvent(w http.ResponseWriter, r *http.Request) {
 	if err := s.helperDecode(r.Body, w, &event); err != nil {
 		return
 	}
+
 	err := s.app.InsertEvent(r.Context(), &event)
 	if err != nil {
 		s.log.Errorf("InsertEvent:%v\n", err)

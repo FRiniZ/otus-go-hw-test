@@ -37,6 +37,8 @@ type Logger interface {
 type Storage interface {
 	Connect(context.Context) error
 	Close(context.Context) error
+
+	// For calendar HTTP/GRPC API
 	InsertEvent(context.Context, *storage.Event) error
 	UpdateEvent(context.Context, *storage.Event) error
 	DeleteEvent(context.Context, int64) error
@@ -44,6 +46,12 @@ type Storage interface {
 	ListEvents(context.Context, int64) ([]storage.Event, error)
 	ListEventsRange(context.Context, int64, time.Time, time.Time) ([]storage.Event, error)
 	IsBusyDateTimeRange(context.Context, int64, int64, time.Time, time.Time) error
+
+	// For scheduler
+	ListEventsDayOfNotice(context.Context, time.Time) ([]storage.Event, error)
+
+	// For sender
+	UpdateEventNotified(context.Context, int64) error
 }
 
 func New(logger Logger, storage Storage) *App {
@@ -79,9 +87,6 @@ func (a *App) checkBasicRules(e *storage.Event, checkID bool) error {
 	if !e.NotifyTime.IsZero() {
 		if e.NotifyTime.After(e.OffTime) {
 			return fmt.Errorf("%w: after OffTime", ErrNotifyTime)
-		}
-		if e.NotifyTime.Before(e.OnTime) {
-			return fmt.Errorf("%w: before OnTime", ErrNotifyTime)
 		}
 	}
 
@@ -125,6 +130,7 @@ func (a *App) InsertEvent(ctx context.Context, event *storage.Event) error {
 
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
+
 	return a.storage.InsertEvent(ctx, event)
 }
 
@@ -195,4 +201,10 @@ func (a *App) ListEventsMonth(ctx context.Context, userID int64, date time.Time)
 	dayFirst := a.firstDayOfMonth(date)
 	dayLast := a.lastDayOfMonth(date)
 	return a.storage.ListEventsRange(ctx, userID, dayFirst, dayLast)
+}
+
+func (a *App) ListEventsDayOfNotice(ctx context.Context, date time.Time) ([]storage.Event, error) {
+	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+	return a.storage.ListEventsDayOfNotice(ctx, date)
 }

@@ -1,0 +1,16 @@
+#Scheduler
+period = "1m"
+
+[logger]
+level = "DEBUG"
+
+[storage]
+#db = "in-memory" 
+db = "sql"
+dsn = "postgresql://root:secretkey@localhost:5432/calendar?sslmode=disable"
+
+[rabbitmq]
+url = "amqp://root:secretkey@localhost:5672/"
+
+# TODO
+# ...
