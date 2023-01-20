@@ -18,16 +18,12 @@ const (
 	KeyLoggerID ctxKeyID = iota
 )
 
-type Conf struct {
-	Host string `toml:"host"`
-	Port string `toml:"port"`
-}
-
 type Server struct {
 	log  Logger
 	srv  http.Server
 	app  Application
-	conf Conf
+	host string
+	port string
 }
 
 type Logger interface {
@@ -62,8 +58,8 @@ type reqByUserByDate struct {
 	Date   time.Time `json:"date"`
 }
 
-func New(log Logger, app Application, conf Conf) *Server {
-	return &Server{log: log, app: app, conf: conf}
+func NewServer(log Logger, app Application, host, port string) *Server {
+	return &Server{log: log, app: app, host: host, port: port}
 }
 
 func (s *Server) doNothing(w http.ResponseWriter, r *http.Request) {
@@ -256,7 +252,7 @@ func (s *Server) ListEventsMonth(w http.ResponseWriter, r *http.Request) { //nol
 }
 
 func (s *Server) Start(ctx context.Context) error {
-	addr := net.JoinHostPort(s.conf.Host, s.conf.Port)
+	addr := net.JoinHostPort(s.host, s.port)
 	midLogger := NewMiddlewareLogger()
 	mux := http.NewServeMux()
 

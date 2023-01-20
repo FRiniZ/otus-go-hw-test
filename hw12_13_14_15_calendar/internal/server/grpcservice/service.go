@@ -3,11 +3,14 @@ package internalgrpc
 import (
 	context "context"
 	"net"
+	"strings"
 	"time"
 
 	api "github.com/FRiniZ/otus-go-hw-test/hw12_calendar/api/stub"
 	"github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/model"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/peer"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -17,11 +20,6 @@ type ctxKeyID int
 const (
 	KeyMethodID ctxKeyID = iota
 )
-
-type Conf struct {
-	Port string `toml:"port"`
-	Host string `toml:"host"`
-}
 
 type Logger interface {
 	Fatalf(format string, a ...interface{})
@@ -44,9 +42,10 @@ type Application interface {
 
 type Service struct {
 	log     Logger
-	conf    Conf
 	app     Application
 	basesrv *grpc.Server
+	host    string
+	port    string
 	api.UnimplementedCalendarServer
 }
 
@@ -178,12 +177,44 @@ func (s Service) ListEventsMonth(ctx context.Context, req *api.ReqByUserByDate) 
 	return &rep, nil
 }
 
-func New(log Logger, app Application, conf Conf, basesrv *grpc.Server) *Service {
-	return &Service{app: app, conf: conf, log: log, basesrv: basesrv}
+func NewServer(log Logger, app Application, host, port string) *Service {
+	unarayLoggerEnricherIntercepter := func(ctx context.Context,
+		req interface{},
+		info *grpc.UnaryServerInfo,
+		handler grpc.UnaryHandler) (interface{}, error) { //nolint:gofumpt
+		var b strings.Builder
+		ip, _ := peer.FromContext(ctx)
+		md, ok := metadata.FromIncomingContext(ctx)
+		userAgent := "unknown"
+
+		if ok {
+			userAgent = md["user-agent"][0]
+		}
+
+		b.WriteString(ip.Addr.String())
+		b.WriteString(" ")
+		b.WriteString(time.Now().Format("02/Jan/2006:15:04:05 -0700"))
+		b.WriteString(" ")
+		b.WriteString(info.FullMethod)
+		b.WriteString(" ")
+		b.WriteString(userAgent)
+		b.WriteString("\"\n")
+		log.Infof(b.String())
+		return handler(ctx, req)
+	}
+
+	return &Service{
+		log:                         log,
+		app:                         app,
+		basesrv:                     grpc.NewServer(grpc.UnaryInterceptor(unarayLoggerEnricherIntercepter)),
+		host:                        host,
+		port:                        port,
+		UnimplementedCalendarServer: api.UnimplementedCalendarServer{},
+	}
 }
 
 func (s *Service) Start(context.Context) error {
-	addr := net.JoinHostPort(s.conf.Host, s.conf.Port)
+	addr := net.JoinHostPort(s.host, s.port)
 	dial, err := net.Listen("tcp", addr)
 	if err != nil {
 		return err

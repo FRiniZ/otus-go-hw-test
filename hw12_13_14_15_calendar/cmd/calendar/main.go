@@ -9,6 +9,8 @@ import (
 
 	"github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/app"
 	"github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/logger"
+	internalgrpc "github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/server/grpcservice"
+	internalhttp "github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/server/http"
 	"github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/storage"
 )
 
@@ -17,8 +19,12 @@ func main() {
 	storage := storage.NewStorage(config.Storage)
 	logger := logger.NewLogger(config.Logger.Level, os.Stdout)
 	calendar := app.NewCalendar(logger, config.CalendarConf, storage)
+	httpsrv := internalhttp.NewServer(logger, calendar,
+		config.HTTPServer.Host, config.HTTPServer.Port)
+	grpcsrv := internalgrpc.NewServer(logger, calendar,
+		config.GRPCServer.Host, config.GRPCServer.Port)
 
-	calendar.Run()
+	calendar.Run(httpsrv, grpcsrv)
 
 	fmt.Println("calendar stopped")
 }

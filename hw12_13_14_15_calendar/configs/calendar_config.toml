@@ -1,11 +1,11 @@
 [logger]
 level = "DEBUG"
 
-[http]
+[http-server]
 port = "8089"
 host = "localhost"
 
-[grpc]
+[grpc-server]
 port = "10000"
 host = "localhost"
 

@@ -5,36 +5,34 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"os"
 	"os/signal"
-	"strings"
 	"syscall"
 	"time"
 
 	logger "github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/logger"
 	"github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/model"
-	internalgrpc "github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/server/grpcservice"
-	internalhttp "github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/server/http"
 	"github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/storage"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/metadata"
-	"google.golang.org/grpc/peer"
 )
 
 type CalendarConf struct {
-	Logger     logger.Conf       `toml:"logger"`
-	Storage    storage.Conf      `toml:"storage"`
-	HTTPServer internalhttp.Conf `toml:"http"`
-	GRPSServer internalgrpc.Conf `toml:"grpc"`
+	Logger     logger.Conf  `toml:"logger"`
+	Storage    storage.Conf `toml:"storage"`
+	HTTPServer struct {
+		Host string `toml:"host"`
+		Port string `toml:"port"`
+	} `toml:"http-server"`
+	GRPCServer struct {
+		Host string `toml:"host"`
+		Port string `toml:"port"`
+	} `toml:"grpc-server"`
 }
 
 type Calendar struct {
 	conf    CalendarConf
 	log     Logger
 	storage CalendarStorage
-	httpsrv *internalhttp.Server
-	grpcsrv *internalgrpc.Service
 }
 
 type CalendarStorage interface {
@@ -47,6 +45,11 @@ type CalendarStorage interface {
 	ListEvents(context.Context, int64) ([]model.Event, error)
 	ListEventsRange(context.Context, int64, time.Time, time.Time) ([]model.Event, error)
 	IsBusyDateTimeRange(context.Context, int64, int64, time.Time, time.Time) error
+}
+
+type Server interface {
+	Start(context.Context) error
+	Stop(context.Context) error
 }
 
 func (c *Calendar) checkBasicRules(e *model.Event, checkID bool) error {
@@ -195,50 +198,18 @@ func (c *Calendar) ListEventsMonth(ctx context.Context, userID int64, date time.
 }
 
 func NewCalendar(log Logger, conf CalendarConf, storage CalendarStorage) *Calendar {
-	calendar := &Calendar{log: log, conf: conf, storage: storage}
-
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	err := calendar.storage.Connect(ctx)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Can't connect to storage:%v\n", err)
-		os.Exit(1)
-	}
 	defer cancel()
 
-	calendar.httpsrv = internalhttp.New(log, calendar, conf.HTTPServer)
-
-	unarayLoggerEnricherIntercepter := func(ctx context.Context,
-		req interface{},
-		info *grpc.UnaryServerInfo,
-		handler grpc.UnaryHandler) (interface{}, error) { //nolint:gofumpt
-		var b strings.Builder
-		ip, _ := peer.FromContext(ctx)
-		md, ok := metadata.FromIncomingContext(ctx)
-		userAgent := "unknown"
-
-		if ok {
-			userAgent = md["user-agent"][0]
-		}
-
-		b.WriteString(ip.Addr.String())
-		b.WriteString(" ")
-		b.WriteString(time.Now().Format("02/Jan/2006:15:04:05 -0700"))
-		b.WriteString(" ")
-		b.WriteString(info.FullMethod)
-		b.WriteString(" ")
-		b.WriteString(userAgent)
-		b.WriteString("\"\n")
-		log.Infof(b.String())
-		return handler(ctx, req)
+	err := storage.Connect(ctx)
+	if err != nil {
+		exitfail(fmt.Sprintln("Can't connect to storage:%v", err))
 	}
 
-	basesrv := grpc.NewServer(grpc.UnaryInterceptor(unarayLoggerEnricherIntercepter))
-	calendar.grpcsrv = internalgrpc.New(log, calendar, conf.GRPSServer, basesrv)
-
-	return calendar
+	return &Calendar{log: log, conf: conf, storage: storage}
 }
 
-func (c Calendar) Run() {
+func (c Calendar) Run(httpsrv Server, grpcsrv Server) {
 	ctx, cancel := signal.NotifyContext(context.Background(),
 		syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
 	defer cancel()
@@ -246,11 +217,11 @@ func (c Calendar) Run() {
 	g, ctxEG := errgroup.WithContext(ctx)
 
 	func1 := func() error {
-		return c.httpsrv.Start(ctxEG)
+		return httpsrv.Start(ctxEG)
 	}
 
 	func2 := func() error {
-		return c.grpcsrv.Start(ctxEG)
+		return grpcsrv.Start(ctxEG)
 	}
 
 	go func() {
@@ -259,13 +230,13 @@ func (c Calendar) Run() {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
 		defer cancel()
 
-		if err := c.grpcsrv.Stop(ctx); err != nil {
+		if err := grpcsrv.Stop(ctx); err != nil {
 			if !errors.Is(err, grpc.ErrServerStopped) {
 				c.log.Errorf("failed to stop GRPC-server:%v\n", err)
 			}
 		}
 
-		if err := c.httpsrv.Stop(ctx); err != nil {
+		if err := httpsrv.Stop(ctx); err != nil {
 			if !errors.Is(err, http.ErrServerClosed) &&
 				!errors.Is(err, context.Canceled) {
 				c.log.Errorf("failed to stop HTTP-server:%v\n", err)
