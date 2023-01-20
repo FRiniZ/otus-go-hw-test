@@ -1,4 +1,4 @@
-package grpcservice
+package app
 
 import (
 	"context"
@@ -10,8 +10,8 @@ import (
 	"time"
 
 	api "github.com/FRiniZ/otus-go-hw-test/hw12_calendar/api/stub"
-	"github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/app"
-	"github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/logger"
+	logger "github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/logger"
+	internalgrpc "github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/server/grpcservice"
 	memorystorage "github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/storage/memory"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
@@ -44,8 +44,7 @@ func TestGrpcService(t *testing.T) { //nolint:funlen
 	db := memorystorage.New()
 	log, err := logger.New("DEBUG", os.Stdout)
 	require.NoError(t, err)
-	calendar := app.New(log, db)
-	conf := Conf{}
+	calendar := &Calendar{log: log, storage: db}
 
 	dialer := func() func(context.Context, string) (net.Conn, error) {
 		listener := bufconn.Listen(1024 * 1024)
@@ -77,7 +76,7 @@ func TestGrpcService(t *testing.T) { //nolint:funlen
 		}
 
 		server := grpc.NewServer(grpc.UnaryInterceptor(unarayLoggerEnricherIntercepter))
-		grpcsrv := New(log, calendar, conf, server)
+		grpcsrv := internalgrpc.New(log, calendar, internalgrpc.Conf{}, server)
 		api.RegisterCalendarServer(server, grpcsrv)
 
 		go func() {

@@ -1,34 +1,38 @@
 package main
 
 import (
+	"flag"
+	"fmt"
 	"os"
 
 	"github.com/BurntSushi/toml"
-	grpcservice "github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/server/grpcservice"
-	internalhttp "github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/server/http"
+	"github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/app"
 )
 
-// При желании конфигурацию можно вынести в internal/config.
-// Организация конфига в main принуждает нас сужать API компонентов, использовать
-// при их конструировании только необходимые параметры, а также уменьшает вероятность циклической зависимости.
+var configFile string
+
+func init() {
+	flag.StringVar(&configFile, "config", "/etc/calendar/calendar_config.toml", "Path to configuration file")
+	flag.Parse()
+
+	if flag.Arg(0) == "version" {
+		app.PrintVersion()
+		return
+	}
+}
+
 type Config struct {
-	HTTPServer internalhttp.Conf `toml:"http"`
-	GRPSServer grpcservice.Conf  `toml:"grpc"`
-	Storage    StorageConf       `toml:"storage"`
-	Logger     LoggerConf        `toml:"logger"`
-}
-
-type LoggerConf struct {
-	Level string `toml:"level"`
-}
-
-type StorageConf struct {
-	DB  string `toml:"db"`
-	DSN string `toml:"dsn"`
+	app.CalendarConf
 }
 
 func NewConfig() Config {
-	return Config{}
+	var config Config
+	if err := config.LoadFileTOML(configFile); err != nil {
+		fmt.Fprintf(os.Stderr, "Can't load config file:%v error: %v\n", configFile, err)
+		os.Exit(1)
+	}
+	fmt.Println("Config:", config)
+	return config
 }
 
 func (c *Config) LoadFileTOML(filename string) error {
@@ -36,6 +40,5 @@ func (c *Config) LoadFileTOML(filename string) error {
 	if err != nil {
 		return err
 	}
-
 	return toml.Unmarshal(filedata, c)
 }

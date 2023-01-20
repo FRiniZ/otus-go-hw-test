@@ -324,3 +324,21 @@ func (s *Storage) UpdateEventNotified(ctx context.Context, eventid int64) error 
 
 	return nil
 }
+
+func (s *Storage) DeleteEventsOlderDate(ctx context.Context, date time.Time) (int64, error) {
+	query := `DELETE FROM events
+	          WHERE offtime < $1`
+
+	res, err := s.db.ExecContext(ctx, query, date)
+
+	if err != nil {
+		return 0, fmt.Errorf("failed delete event: %w", err)
+	}
+
+	rowsAffected, err := res.RowsAffected()
+	if err != nil {
+		return 0, fmt.Errorf("failed get RowsAffected: %w", err)
+	}
+
+	return rowsAffected, nil
+}

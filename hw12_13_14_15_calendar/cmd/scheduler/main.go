@@ -7,11 +7,9 @@ import (
 )
 
 func main() {
-
 	config := NewConfig()
 	scheduler := app.NewScheduler(config.SchedulerConf)
 
 	scheduler.Run()
-
 	fmt.Println("calendar_scheduler stopped")
 }

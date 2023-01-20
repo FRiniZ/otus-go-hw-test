@@ -153,3 +153,16 @@ func (s *Storage) UpdateEventNotified(ctx context.Context, eventid int64) error 
 	s.data[eventid].Notified = true
 	return nil
 }
+
+func (s *Storage) DeleteEventsOlderDate(ctx context.Context, date time.Time) (int64, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	deleted := int64(0)
+	for id, v := range s.data {
+		if v.OffTime.Before(date) {
+			delete(s.data, id)
+			deleted++
+		}
+	}
+	return deleted, nil
+}

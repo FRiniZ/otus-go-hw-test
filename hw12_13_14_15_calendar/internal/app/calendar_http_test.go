@@ -1,4 +1,4 @@
-package internalhttp
+package app
 
 import (
 	"context"
@@ -11,8 +11,8 @@ import (
 	"strings"
 	"testing"
 
-	app "github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/app"
 	"github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/logger"
+	internalhttp "github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/server/http"
 	"github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/storage"
 	memorystorage "github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/storage/memory"
 	"github.com/stretchr/testify/require"
@@ -37,7 +37,7 @@ func helperDecode(stream io.Reader, r interface{}) error {
 	return nil
 }
 
-func TestHTTPServer(t *testing.T) {
+func TestCalendarHTTPServer(t *testing.T) {
 	userID400 := int64(400)
 	bodyUserID := fmt.Sprintf(`{"userid": %d}`, userID400)
 
@@ -74,9 +74,8 @@ func TestHTTPServer(t *testing.T) {
 	db := memorystorage.New()
 	log, err := logger.New("DEBUG", os.Stdout)
 	require.NoError(t, err)
-	calendar := app.New(log, db)
-	conf := Conf{}
-	httpsrv := New(log, calendar, conf, nil)
+	calendar := &Calendar{log: log, storage: db}
+	httpsrv := internalhttp.New(log, calendar, internalhttp.Conf{})
 	httpcli := &http.Client{}
 
 	t.Run("case_insert", func(t *testing.T) {

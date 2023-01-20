@@ -24,8 +24,8 @@ type Conf struct {
 }
 
 type Server struct {
-	srv  http.Server
 	log  Logger
+	srv  http.Server
 	app  Application
 	conf Conf
 }
@@ -62,7 +62,7 @@ type reqByUserByDate struct {
 	Date   time.Time `json:"date"`
 }
 
-func New(log Logger, app Application, conf Conf, cancel context.CancelFunc) *Server {
+func New(log Logger, app Application, conf Conf) *Server {
 	return &Server{log: log, app: app, conf: conf}
 }
 
@@ -256,6 +256,7 @@ func (s *Server) ListEventsMonth(w http.ResponseWriter, r *http.Request) { //nol
 }
 
 func (s *Server) Start(ctx context.Context) error {
+
 	addr := net.JoinHostPort(s.conf.Host, s.conf.Port)
 	midLogger := NewMiddlewareLogger()
 	mux := http.NewServeMux()
