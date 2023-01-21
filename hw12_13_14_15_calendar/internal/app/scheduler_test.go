@@ -60,11 +60,14 @@ func TestScheduler(t *testing.T) {
 		err := db.InsertEvent(ctx, &event)
 		require.NoError(t, err)
 
+		eventID := event.ID
+		require.NotEmpty(t, eventID)
+
 		n, err := scheduler.DeleteEventsOlderDate(ctx, currTime.AddDate(1, 0, 1))
 		require.NoError(t, err)
 		require.EqualValues(t, int64(1), n)
 
-		_, err = db.LookupEvent(ctx, userID)
+		_, err = db.LookupEvent(ctx, eventID)
 		require.ErrorIs(t, err, memorystorage.ErrEventNotFound)
 	})
 }
