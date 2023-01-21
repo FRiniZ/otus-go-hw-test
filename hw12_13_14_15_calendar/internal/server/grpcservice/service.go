@@ -177,7 +177,7 @@ func (s Service) ListEventsMonth(ctx context.Context, req *api.ReqByUserByDate) 
 	return &rep, nil
 }
 
-func NewServer(log Logger, app Application, host, port string) *Service {
+func NewServer(log Logger, app Application, host, port string) (*Service, *grpc.Server) {
 	unarayLoggerEnricherIntercepter := func(ctx context.Context,
 		req interface{},
 		info *grpc.UnaryServerInfo,
@@ -203,14 +203,20 @@ func NewServer(log Logger, app Application, host, port string) *Service {
 		return handler(ctx, req)
 	}
 
-	return &Service{
+	basesrv := grpc.NewServer(grpc.UnaryInterceptor(unarayLoggerEnricherIntercepter))
+
+	server := &Service{
 		log:                         log,
 		app:                         app,
-		basesrv:                     grpc.NewServer(grpc.UnaryInterceptor(unarayLoggerEnricherIntercepter)),
+		basesrv:                     basesrv,
 		host:                        host,
 		port:                        port,
 		UnimplementedCalendarServer: api.UnimplementedCalendarServer{},
 	}
+
+	api.RegisterCalendarServer(server.basesrv, server)
+
+	return server, basesrv
 }
 
 func (s *Service) Start(context.Context) error {
@@ -219,8 +225,6 @@ func (s *Service) Start(context.Context) error {
 	if err != nil {
 		return err
 	}
-
-	api.RegisterCalendarServer(s.basesrv, s)
 
 	s.log.Infof("GRPC-server started on:%v\n", addr)
 	if err := s.basesrv.Serve(dial); err != nil {

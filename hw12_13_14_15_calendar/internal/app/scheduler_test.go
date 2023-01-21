@@ -7,7 +7,7 @@ import (
 	"time"
 
 	logger "github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/logger"
-	"github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/storage"
+	"github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/model"
 	memorystorage "github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/storage/memory"
 	internalrmq "github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/transport/rabbitmq"
 	"github.com/stretchr/testify/require"
@@ -18,16 +18,14 @@ func TestScheduler(t *testing.T) {
 
 	db := memorystorage.New()
 	require.NotNil(t, db)
-	log, err := logger.New("DEBUG", os.Stdout)
-	require.NoError(t, err)
-
-	producer := internalrmq.NewDummyProducer(log, internalrmq.Conf{})
+	log := logger.NewLogger("DEBUG", os.Stdout)
+	producer := internalrmq.NewDummyProducer()
 	scheduler := Scheduler{log: log, storage: db, producer: producer}
 
 	t.Run("test_send_notification", func(t *testing.T) {
 		currTime := time.Now()
 		userID := int64(100)
-		event := storage.Event{
+		event := model.Event{
 			UserID:      userID,
 			Title:       "TitleN1",
 			Description: "DescriptionN1",
@@ -50,7 +48,7 @@ func TestScheduler(t *testing.T) {
 	t.Run("test_delete_old_events", func(t *testing.T) {
 		currTime := time.Now()
 		userID := int64(200)
-		event := storage.Event{
+		event := model.Event{
 			UserID:      userID,
 			Title:       "TitleN1",
 			Description: "DescriptionN1",

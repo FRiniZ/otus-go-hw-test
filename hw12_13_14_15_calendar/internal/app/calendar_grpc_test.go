@@ -5,19 +5,16 @@ import (
 	"fmt"
 	"net"
 	"os"
-	"strings"
 	"testing"
 	"time"
 
 	api "github.com/FRiniZ/otus-go-hw-test/hw12_calendar/api/stub"
-	logger "github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/logger"
+	"github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/logger"
 	internalgrpc "github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/server/grpcservice"
 	memorystorage "github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/storage/memory"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
-	"google.golang.org/grpc/metadata"
-	"google.golang.org/grpc/peer"
 	"google.golang.org/grpc/test/bufconn"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -42,42 +39,14 @@ func TestGrpcService(t *testing.T) { //nolint:funlen
 	require.Less(t, attempt, step)
 
 	db := memorystorage.New()
-	log, err := logger.New("DEBUG", os.Stdout)
-	require.NoError(t, err)
+	log := logger.NewLogger("DEBUG", os.Stdout)
+
 	calendar := &Calendar{log: log, storage: db}
 
 	dialer := func() func(context.Context, string) (net.Conn, error) {
 		listener := bufconn.Listen(1024 * 1024)
 
-		unarayLoggerEnricherIntercepter := func(ctx context.Context,
-			req interface{},
-			info *grpc.UnaryServerInfo,
-			handler grpc.UnaryHandler) (interface{}, error) { //nolint:gofumpt
-			var b strings.Builder
-			ip, _ := peer.FromContext(ctx)
-			md, ok := metadata.FromIncomingContext(ctx)
-			userAgent := "unknown"
-
-			if ok {
-				userAgent = md["user-agent"][0]
-			}
-
-			b.WriteString(ip.Addr.String())
-			b.WriteString(" ")
-			b.WriteString(time.Now().Format("02/Jan/2006:15:04:05 -0700"))
-			b.WriteString(" ")
-			b.WriteString(info.FullMethod)
-			b.WriteString(" ")
-			b.WriteString(userAgent)
-			b.WriteString("\"\n")
-			log.Infof(b.String())
-
-			return handler(ctx, req)
-		}
-
-		server := grpc.NewServer(grpc.UnaryInterceptor(unarayLoggerEnricherIntercepter))
-		grpcsrv := internalgrpc.New(log, calendar, internalgrpc.Conf{}, server)
-		api.RegisterCalendarServer(server, grpcsrv)
+		_, server := internalgrpc.NewServer(log, calendar, "", "")
 
 		go func() {
 			if err := server.Serve(listener); err != nil {

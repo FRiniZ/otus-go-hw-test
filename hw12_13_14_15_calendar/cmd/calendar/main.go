@@ -15,14 +15,12 @@ import (
 )
 
 func main() {
-	config := NewConfig()
-	storage := storage.NewStorage(config.Storage)
-	logger := logger.NewLogger(config.Logger.Level, os.Stdout)
-	calendar := app.NewCalendar(logger, config.CalendarConf, storage)
-	httpsrv := internalhttp.NewServer(logger, calendar,
-		config.HTTPServer.Host, config.HTTPServer.Port)
-	grpcsrv := internalgrpc.NewServer(logger, calendar,
-		config.GRPCServer.Host, config.GRPCServer.Port)
+	conf := NewConfig()
+	storage := storage.NewStorage(conf.Storage)
+	logger := logger.NewLogger(conf.Logger.Level, os.Stdout)
+	calendar := app.NewCalendar(logger, conf.CalendarConf, storage)
+	httpsrv := internalhttp.NewServer(logger, calendar, conf.HTTP.Host, conf.HTTP.Port)
+	grpcsrv, _ := internalgrpc.NewServer(logger, calendar, conf.GRPC.Host, conf.GRPC.Port)
 
 	calendar.Run(httpsrv, grpcsrv)
 

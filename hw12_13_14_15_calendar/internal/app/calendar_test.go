@@ -7,7 +7,7 @@ import (
 	"time"
 
 	logger "github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/logger"
-	"github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/storage"
+	"github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/model"
 	memorystorage "github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/storage/memory"
 	"github.com/stretchr/testify/require"
 )
@@ -17,14 +17,12 @@ func TestCalendar(t *testing.T) {
 
 	db := memorystorage.New()
 	require.NotNil(t, db)
-	log, err := logger.New("DEBUG", os.Stdout)
-	require.NoError(t, err)
-
+	log := logger.NewLogger("DEBUG", os.Stdout)
 	calendar := Calendar{log: log, storage: db}
 
 	t.Run("test_rules", func(t *testing.T) {
 		currTime := time.Now()
-		event := storage.Event{
+		event := model.Event{
 			Title:       string(make([]byte, 151)),
 			Description: "DescriptionN1",
 			OnTime:      time.Time{},
@@ -64,7 +62,7 @@ func TestCalendar(t *testing.T) {
 		err = calendar.InsertEvent(ctx, &event)
 		require.NoError(t, err)
 
-		eventCopy := storage.Event{
+		eventCopy := model.Event{
 			ID:          0,
 			UserID:      event.UserID,
 			Title:       event.Title,
@@ -80,7 +78,7 @@ func TestCalendar(t *testing.T) {
 	t.Run("test_api", func(t *testing.T) {
 		currTime := time.Now()
 		userID := int64(100)
-		event := storage.Event{
+		event := model.Event{
 			UserID:      userID,
 			Title:       "TitleN1",
 			Description: "DescriptionN1",

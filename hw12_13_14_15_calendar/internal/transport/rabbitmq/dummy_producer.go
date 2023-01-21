@@ -6,8 +6,7 @@ import (
 	"github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/model"
 )
 
-type DummyProducer struct {
-}
+type DummyProducer struct{}
 
 func NewDummyProducer() *DummyProducer {
 	return &DummyProducer{}

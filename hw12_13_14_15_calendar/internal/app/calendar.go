@@ -17,13 +17,13 @@ import (
 )
 
 type CalendarConf struct {
-	Logger     logger.Conf  `toml:"logger"`
-	Storage    storage.Conf `toml:"storage"`
-	HTTPServer struct {
+	Logger  logger.Conf  `toml:"logger"`
+	Storage storage.Conf `toml:"storage"`
+	HTTP    struct {
 		Host string `toml:"host"`
 		Port string `toml:"port"`
 	} `toml:"http-server"`
-	GRPCServer struct {
+	GRPC struct {
 		Host string `toml:"host"`
 		Port string `toml:"port"`
 	} `toml:"grpc-server"`
@@ -201,9 +201,8 @@ func NewCalendar(log Logger, conf CalendarConf, storage CalendarStorage) *Calend
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	err := storage.Connect(ctx)
-	if err != nil {
-		exitfail(fmt.Sprintln("Can't connect to storage:%v", err))
+	if err := storage.Connect(ctx); err != nil {
+		exitfail(fmt.Sprintf("Can't connect to storage:%v", err))
 	}
 
 	return &Calendar{log: log, conf: conf, storage: storage}

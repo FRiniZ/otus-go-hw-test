@@ -6,11 +6,11 @@ import (
 	"testing"
 	"time"
 
-	storage "github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/storage"
+	"github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/model"
 	"github.com/stretchr/testify/require"
 )
 
-func helperEvent(ev *storage.Event, i int) {
+func helperEvent(ev *model.Event, i int) {
 	ev.UserID = int64(i + 1)
 	ev.Title = fmt.Sprintf("Title_N%v", i+1)
 	ev.Description = fmt.Sprintf("Description_N%v", i+1)
@@ -23,7 +23,7 @@ func TestStorage(t *testing.T) {
 	db := New()
 	num := 10000
 
-	events := make([]storage.Event, num)
+	events := make([]model.Event, num)
 	for i := 0; i < num; i++ {
 		helperEvent(&events[i], i)
 	}
@@ -48,7 +48,7 @@ func TestStorage(t *testing.T) {
 		})
 	}
 	t.Run("wrong_update", func(t *testing.T) {
-		var ev storage.Event
+		var ev model.Event
 		helperEvent(&ev, 1)
 		ev.ID = -1
 		err := db.UpdateEvent(context.Background(), &ev)

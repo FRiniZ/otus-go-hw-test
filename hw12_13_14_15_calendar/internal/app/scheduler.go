@@ -15,7 +15,7 @@ import (
 type SchedulerConf struct {
 	Logger  logger.Conf   `toml:"logger"`
 	Storage storage.Conf  `toml:"storage"`
-	UrlRMQ  string        `toml:"url_rmq"`
+	URLRMQ  string        `toml:"url_rmq"`
 	Period  time.Duration `toml:"period"`
 }
 
