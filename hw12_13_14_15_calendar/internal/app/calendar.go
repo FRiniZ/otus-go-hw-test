@@ -11,15 +11,17 @@ import (
 
 	logger "github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/logger"
 	"github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/model"
-	"github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/storage"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
 )
 
 type CalendarConf struct {
-	Logger  logger.Conf  `toml:"logger"`
-	Storage storage.Conf `toml:"storage"`
-	HTTP    struct {
+	Logger  logger.Conf `toml:"logger"`
+	Storage struct {
+		DB  string `toml:"db"`
+		DSN string `toml:"dsn"`
+	} `toml:"storage"`
+	HTTP struct {
 		Host string `toml:"host"`
 		Port string `toml:"port"`
 	} `toml:"http-server"`

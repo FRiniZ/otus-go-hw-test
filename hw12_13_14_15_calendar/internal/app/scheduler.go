@@ -9,14 +9,16 @@ import (
 
 	logger "github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/logger"
 	"github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/model"
-	"github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/storage"
 )
 
 type SchedulerConf struct {
-	Logger  logger.Conf   `toml:"logger"`
-	Storage storage.Conf  `toml:"storage"`
-	URLRMQ  string        `toml:"url_rmq"`
-	Period  time.Duration `toml:"period"`
+	Logger  logger.Conf `toml:"logger"`
+	Storage struct {
+		DB  string `toml:"db"`
+		DSN string `toml:"dsn"`
+	} `toml:"storage"`
+	URLRMQ string        `toml:"url_rmq"`
+	Period time.Duration `toml:"period"`
 }
 
 type Scheduler struct {

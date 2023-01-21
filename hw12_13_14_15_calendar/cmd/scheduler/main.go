@@ -12,7 +12,7 @@ import (
 
 func main() {
 	conf := NewConfig()
-	storage := storage.NewStorage(conf.Storage)
+	storage := storage.NewStorage(conf.Storage.DB, conf.Storage.DSN)
 	logger := logger.NewLogger(conf.Logger.Level, os.Stdout)
 	producer := internalrmq.NewProducer(logger, conf.URLRMQ)
 	scheduler := app.NewScheduler(logger, conf.SchedulerConf, storage, producer)
