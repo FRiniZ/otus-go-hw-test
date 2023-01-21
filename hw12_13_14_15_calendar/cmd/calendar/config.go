@@ -22,7 +22,7 @@ func init() {
 }
 
 type Config struct {
-	app.CalendarConf
+	*app.CalendarConf
 }
 
 func NewConfig() Config {
@@ -31,7 +31,7 @@ func NewConfig() Config {
 		fmt.Fprintf(os.Stderr, "Can't load config file:%v error: %v\n", configFile, err)
 		os.Exit(1)
 	}
-	fmt.Println("Config:", config)
+	fmt.Println("Config:", *config.CalendarConf)
 	return config
 }
 

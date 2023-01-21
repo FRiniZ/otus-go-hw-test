@@ -11,6 +11,11 @@ import (
 	sqlstorage "github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/storage/sql"
 )
 
+type Conf struct {
+	DB  string `toml:"db"`
+	DSN string `toml:"dsn"`
+}
+
 type Storage interface {
 	Connect(context.Context) error
 	Close(context.Context) error
@@ -26,12 +31,12 @@ type Storage interface {
 	DeleteEventsOlderDate(context.Context, time.Time) (int64, error)
 }
 
-func NewStorage(db, dsn string) Storage {
-	switch db {
+func NewStorage(conf Conf) Storage {
+	switch conf.DB {
 	case "in-memory":
 		return memorystorage.New()
 	case "sql":
-		return sqlstorage.New(dsn)
+		return sqlstorage.New(conf.DSN)
 	}
 
 	fmt.Fprintln(os.Stderr, "wrong DB")
