@@ -1,5 +1,4 @@
-#Scheduler
-period = "10s"
+#calendar_sender
 url_rmq = "amqp://root:secretkey@localhost:5672/"
 
 [logger]
@@ -9,7 +8,3 @@ level = "DEBUG"
 #db = "in-memory" 
 db = "sql"
 dsn = "postgresql://root:secretkey@localhost:5432/calendar?sslmode=disable"
-
-
-# TODO
-# ...

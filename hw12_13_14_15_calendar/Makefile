@@ -1,5 +1,6 @@
 BIN1 := "./bin/calendar"
 BIN2 := "./bin/calendar_scheduler"
+BIN3 := "./bin/calendar_sender"
 
 DOCKER_IMG="calendar:develop"
 
@@ -14,6 +15,7 @@ generate:
 build:
 	go build -v -o $(BIN1) -ldflags "$(LDFLAGS)" ./cmd/calendar
 	go build -v -o $(BIN2) -ldflags "$(LDFLAGS)" ./cmd/scheduler
+	go build -v -o $(BIN3) -ldflags "$(LDFLAGS)" ./cmd/sender
 
 run: build
 	$(BIN1) -config=./configs/calendar_config.toml

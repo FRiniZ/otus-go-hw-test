@@ -12,14 +12,13 @@ import (
 )
 
 func main() {
-	conf := NewConfig().SchedulerConf
+	conf := NewConfig().SenderConf
 	storage := storage.NewStorage(conf.Storage)
 	logger := logger.NewLogger(conf.Logger.Level, os.Stdout)
-	producer := internalrmq.NewProducer(logger, conf.URLRMQ)
-	scheduler := app.NewScheduler(logger, conf, storage, producer)
+	consumer := internalrmq.NewConsumer(logger, conf.URLRMQ)
+	sender := app.NewSender(logger, conf, storage, consumer)
 
-	scheduler.Run()
-
+	sender.Run()
 	filename := filepath.Base(os.Args[0])
 	fmt.Printf("%s stopped\n", filename)
 }

@@ -18,14 +18,6 @@ type Producer struct {
 	queue   amqp091.Queue
 }
 
-type Logger interface {
-	Fatalf(format string, a ...interface{})
-	Errorf(format string, a ...interface{})
-	Warningf(format string, a ...interface{})
-	Infof(format string, a ...interface{})
-	Debugf(format string, a ...interface{})
-}
-
 var ErrCantSendMsg = errors.New("can't send message")
 
 func NewProducer(log Logger, url string) *Producer {
@@ -58,6 +50,15 @@ func (c *Producer) Connect(ctx context.Context) error {
 func (c *Producer) Close(ctx context.Context) error {
 	c.connect.Close()
 	c.channel.Close()
+	return nil
+}
+
+func (c *Producer) Start(ctx context.Context) error {
+	<-ctx.Done()
+	return nil
+}
+
+func (c *Producer) Stop(ctx context.Context) error {
 	return nil
 }
 

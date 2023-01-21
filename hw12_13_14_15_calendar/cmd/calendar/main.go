@@ -6,6 +6,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/app"
 	"github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/logger"
@@ -24,5 +25,6 @@ func main() {
 
 	calendar.Run(httpsrv, grpcsrv)
 
-	fmt.Println("calendar stopped")
+	filename := filepath.Base(os.Args[0])
+	fmt.Printf("%s stopped\n", filename)
 }

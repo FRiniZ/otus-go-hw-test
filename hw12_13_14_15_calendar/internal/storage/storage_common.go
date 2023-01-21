@@ -27,8 +27,12 @@ type Storage interface {
 	ListEventsRange(context.Context, int64, time.Time, time.Time) ([]model.Event, error)
 	IsBusyDateTimeRange(context.Context, int64, int64, time.Time, time.Time) error
 
+	// for producers
 	ListEventsDayOfNotice(context.Context, time.Time) ([]model.Event, error)
 	DeleteEventsOlderDate(context.Context, time.Time) (int64, error)
+
+	// for consumers
+	UpdateEventNotified(context.Context, int64) error
 }
 
 func NewStorage(conf Conf) Storage {

@@ -124,11 +124,6 @@ func (s Scheduler) SendNotification(ctx context.Context, date time.Time) (int64,
 		if err != nil {
 			return sent, fmt.Errorf("SendNotification:%w", err)
 		}
-
-		//		err = s.storage.UpdateEventNotified(ctx, e.ID)
-		//		if err != nil {
-		//			return fmt.Errorf("Process:%w", err)
-		//		}
 		sent++
 	}
 	return sent, nil
