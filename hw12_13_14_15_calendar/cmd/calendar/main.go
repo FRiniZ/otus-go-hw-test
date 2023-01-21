@@ -15,10 +15,10 @@ import (
 )
 
 func main() {
-	conf := NewConfig()
+	conf := NewConfig().CalendarConf
 	storage := storage.NewStorage(conf.Storage)
 	logger := logger.NewLogger(conf.Logger.Level, os.Stdout)
-	calendar := app.NewCalendar(logger, *conf.CalendarConf, storage)
+	calendar := app.NewCalendar(logger, conf, storage)
 	httpsrv := internalhttp.NewServer(logger, calendar, conf.HTTP.Host, conf.HTTP.Port)
 	grpcsrv, _ := internalgrpc.NewServer(logger, calendar, conf.GRPC.Host, conf.GRPC.Port)
 
