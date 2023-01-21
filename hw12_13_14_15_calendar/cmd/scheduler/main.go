@@ -11,11 +11,11 @@ import (
 )
 
 func main() {
-	conf := NewConfig()
+	conf := NewConfig().SchedulerConf
 	storage := storage.NewStorage(conf.Storage)
 	logger := logger.NewLogger(conf.Logger.Level, os.Stdout)
 	producer := internalrmq.NewProducer(logger, conf.URLRMQ)
-	scheduler := app.NewScheduler(logger, conf.SchedulerConf, storage, producer)
+	scheduler := app.NewScheduler(logger, conf, storage, producer)
 
 	scheduler.Run()
 	fmt.Println("calendar_scheduler stopped")
