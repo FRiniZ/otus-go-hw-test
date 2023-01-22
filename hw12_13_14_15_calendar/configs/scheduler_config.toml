@@ -1,9 +1,9 @@
+#Scheduler
+period = "10s"
+url_rmq = "amqp://root:secretkey@localhost:5672/"
+
 [logger]
 level = "DEBUG"
-
-[http]
-port = "8089"
-host = "localhost"
 
 [storage]
 #db = "in-memory" 

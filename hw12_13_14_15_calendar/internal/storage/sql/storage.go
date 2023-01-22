@@ -3,11 +3,11 @@ package sqlstorage
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"time"
 
-	"github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/app"
-	"github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/storage"
+	"github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/model"
 	_ "github.com/jackc/pgx/stdlib" // needs for init
 )
 
@@ -15,6 +15,11 @@ type Storage struct {
 	dsn string
 	db  *sql.DB
 }
+
+var (
+	ErrEventNotFound   = errors.New("event not found")
+	ErrDataRangeIsBusy = errors.New("data is busy")
+)
 
 type EventDTO struct {
 	ID          sql.NullInt64
@@ -26,7 +31,7 @@ type EventDTO struct {
 	NotifyTime  sql.NullTime
 }
 
-func GetEvent(e EventDTO) (event storage.Event) {
+func GetEvent(e EventDTO) (event model.Event) {
 	if e.ID.Valid {
 		event.ID = e.ID.Int64
 	}
@@ -82,30 +87,6 @@ func (s *Storage) Connect(ctx context.Context) error {
 }
 
 func (s *Storage) Close(ctx context.Context) error {
-	/*
-		Сохранено временно. Возможно нужно как то доработать. Пока не знаю как
-		ctxClose, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-
-		dbCloseChan := make(chan error)
-		go func(che chan error) {
-			if err := s.db.Close(); err != nil {
-				che <- err
-				return
-			}
-			che <- nil
-		}(dbCloseChan)
-
-		select {
-		case <-ctxClose.Done():
-			return ctxClose.Err()
-		case err, ok := <-dbCloseChan:
-			if ok && err != nil {
-				fmt.Println("CloseChan")
-				return err
-			}
-		}
-	*/
 	return s.db.Close()
 }
 
@@ -123,19 +104,16 @@ func stringValue(s string) sql.NullString {
 	return sql.NullString{String: s, Valid: true}
 }
 
-func (s *Storage) InsertEvent(ctx context.Context, e *storage.Event) error {
-	if err := app.CheckingEvent(e); err != nil {
-		return err
-	}
-
-	query := `INSERT INTO events (userid, title, description, ontime)
-						  values ($1, $2, $3, $4) RETURNING id`
+func (s *Storage) InsertEvent(ctx context.Context, e *model.Event) error {
+	query := `INSERT INTO events (userid, title, description, ontime, offtime, notifytime)
+						  values ($1, $2, $3, $4, $5, $6) RETURNING id`
 
 	row := s.db.QueryRowContext(ctx, query, e.UserID, stringValue(e.Title),
-		stringValue(e.Description), timeValue(e.OnTime))
+		stringValue(e.Description), timeValue(e.OnTime), timeValue(e.OffTime),
+		timeValue(e.NotifyTime))
 
 	if err := row.Scan(&e.ID); err != nil {
-		return fmt.Errorf("failed rows.Scan: %w", err)
+		return fmt.Errorf("failed rows.Scan11: %w", err)
 	}
 
 	if err := row.Err(); err != nil {
@@ -145,11 +123,7 @@ func (s *Storage) InsertEvent(ctx context.Context, e *storage.Event) error {
 	return nil
 }
 
-func (s *Storage) UpdateEvent(ctx context.Context, e *storage.Event) error {
-	if err := app.CheckingEvent(e); err != nil {
-		return err
-	}
-
+func (s *Storage) UpdateEvent(ctx context.Context, e *model.Event) error {
 	query := `UPDATE events SET userid = $2,
 								title = $3,
 								description = $4,
@@ -178,19 +152,19 @@ func (s *Storage) UpdateEvent(ctx context.Context, e *storage.Event) error {
 	return nil
 }
 
-func (s *Storage) DeleteEvent(ctx context.Context, e *storage.Event) error {
+func (s *Storage) DeleteEvent(ctx context.Context, id int64) error {
 	query := `DELETE FROM events
 	          WHERE id = $1`
 
-	if _, err := s.db.ExecContext(ctx, query, e.ID); err != nil {
+	if _, err := s.db.ExecContext(ctx, query, id); err != nil {
 		return fmt.Errorf("failed delete event: %w", err)
 	}
 
 	return nil
 }
 
-func (s *Storage) ListEvents(ctx context.Context, userID int64) (events []storage.Event, err error) {
-	var e storage.Event
+func (s *Storage) ListEvents(ctx context.Context, userID int64) (events []model.Event, err error) {
+	var e model.Event
 	var eSQL EventDTO
 
 	query := `SELECT id, userid, title, description, ontime, offtime, notifytime
@@ -219,7 +193,39 @@ func (s *Storage) ListEvents(ctx context.Context, userID int64) (events []storag
 	return events, err
 }
 
-func (s *Storage) LookupEvent(ctx context.Context, eID int64) (e storage.Event, err error) {
+func (s *Storage) ListEventsRange(ctx context.Context, userID int64, begin, end time.Time) ([]model.Event, error) {
+	var e model.Event
+	var events []model.Event
+	var eSQL EventDTO
+
+	query := `SELECT id, userid, title, description, ontime, offtime, notifytime
+	          FROM events
+			  WHERE userid = $1 AND 
+			  (ontime BETWEEN $2 AND $3 OR offtime BETWEEN $2 AND $3)`
+
+	rows, err := s.db.QueryContext(ctx, query, userID, begin, end)
+	if err != nil {
+		return events, fmt.Errorf("failed lookup event: %w", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		if err := rows.Scan(&eSQL.ID, &eSQL.UserID, &eSQL.Title, &eSQL.Description,
+			&eSQL.OnTime, &eSQL.OffTime, &eSQL.NotifyTime); err != nil {
+			return events, fmt.Errorf("failed rows.Scan: %w", err)
+		}
+		e = GetEvent(eSQL)
+		events = append(events, e)
+	}
+
+	if err := rows.Err(); err != nil {
+		return events, fmt.Errorf("failed lookup event: %w", err)
+	}
+
+	return events, nil
+}
+
+func (s *Storage) LookupEvent(ctx context.Context, eID int64) (e model.Event, err error) {
 	var eSQL EventDTO
 	query := `SELECT id, userid, title, description, ontime, offtime, notifytime
 	          FROM events
@@ -229,6 +235,9 @@ func (s *Storage) LookupEvent(ctx context.Context, eID int64) (e storage.Event, 
 
 	if err := rows.Scan(&eSQL.ID, &eSQL.UserID, &eSQL.Title, &eSQL.Description,
 		&eSQL.OnTime, &eSQL.OffTime, &eSQL.NotifyTime); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return e, ErrEventNotFound
+		}
 		return e, fmt.Errorf("failed rows.Scan: %w", err)
 	}
 
@@ -239,4 +248,96 @@ func (s *Storage) LookupEvent(ctx context.Context, eID int64) (e storage.Event, 
 	e = GetEvent(eSQL)
 
 	return e, err
+}
+
+func (s *Storage) IsBusyDateTimeRange(ctx context.Context, id, userID int64, onTime, offTime time.Time) error {
+	var eSQL EventDTO
+	query := `SELECT id
+	          FROM events
+			  WHERE id != $1 AND userid = $2 AND
+			  (($3 BETWEEN ontime and offtime) OR
+			   ($4 BETWEEN ontime and offtime))`
+
+	rows := s.db.QueryRowContext(ctx, query, id, userID, onTime, offTime)
+
+	if err := rows.Scan(&eSQL.ID); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil
+		}
+		return fmt.Errorf("failed rows.Scan: %w", err)
+	}
+
+	if err := rows.Err(); err != nil {
+		return fmt.Errorf("failed rows.Next: %w", err)
+	}
+
+	return ErrDataRangeIsBusy
+}
+
+func (s *Storage) ListEventsDayOfNotice(ctx context.Context, date time.Time) ([]model.Event, error) {
+	var e model.Event
+	var events []model.Event
+	var eSQL EventDTO
+
+	query := `SELECT id, userid, title, description, ontime, offtime, notifytime
+	          FROM events
+			  WHERE notified = false AND notifytime <= $1`
+
+	rows, err := s.db.QueryContext(ctx, query, date)
+	if err != nil {
+		return events, fmt.Errorf("failed lookup event: %w", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		if err := rows.Scan(&eSQL.ID, &eSQL.UserID, &eSQL.Title, &eSQL.Description,
+			&eSQL.OnTime, &eSQL.OffTime, &eSQL.NotifyTime); err != nil {
+			return events, fmt.Errorf("failed rows.Scan: %w", err)
+		}
+		e = GetEvent(eSQL)
+		events = append(events, e)
+	}
+
+	if err := rows.Err(); err != nil {
+		return events, fmt.Errorf("failed lookup event: %w", err)
+	}
+
+	return events, nil
+}
+
+func (s *Storage) UpdateEventNotified(ctx context.Context, eventid int64) error {
+	query := `UPDATE events SET notified = true WHERE id = $1`
+
+	res, err := s.db.ExecContext(ctx, query, eventid)
+	if err != nil {
+		return fmt.Errorf("failed update event: %w", err)
+	}
+
+	rowsAffected, err := res.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed get RowsAffected: %w", err)
+	}
+
+	if rowsAffected != 1 {
+		return fmt.Errorf("failed rowsAffected: %v", rowsAffected)
+	}
+
+	return nil
+}
+
+func (s *Storage) DeleteEventsOlderDate(ctx context.Context, date time.Time) (int64, error) {
+	query := `DELETE FROM events
+	          WHERE offtime < $1`
+
+	res, err := s.db.ExecContext(ctx, query, date)
+	if err != nil {
+		return 0, fmt.Errorf("failed delete event: %w", err)
+	}
+
+	rowsAffected, err := res.RowsAffected()
+	if err != nil {
+		return 0, fmt.Errorf("failed get RowsAffected: %w", err)
+	}
+
+	return rowsAffected, nil
 }

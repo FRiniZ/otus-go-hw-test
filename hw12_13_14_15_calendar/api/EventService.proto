@@ -1,7 +1,42 @@
 syntax = "proto3";
 
-package event;
+import "google/protobuf/timestamp.proto";
+
+option go_package ="./stub/;api";
+
+package api;
 
 message Event {
-    // TODO
+    optional int64   ID              = 1;
+    optional int64   UserID          = 2;
+    optional string  Title           = 3;
+    optional string  Description     = 4;
+    optional google.protobuf.Timestamp  OnTime          = 5;
+    optional google.protobuf.Timestamp  OffTime         = 6;
+    optional google.protobuf.Timestamp  NotifyTime      = 7;
+}
+
+message ReqByEvent {
+    optional Event  event = 1;
+}
+
+message ReqByID {
+    optional int64   ID = 1;
+}
+
+message ReqByUser {
+    optional int64   UserID = 1;
+}
+
+message ReqByUserByDate {
+    optional int64                      UserID = 1;
+    optional google.protobuf.Timestamp  Date         = 2;
+}
+
+message RepID {
+    optional int64    ID = 1;
+}
+
+message RepEvents {
+    repeated Event  event = 2;
 }

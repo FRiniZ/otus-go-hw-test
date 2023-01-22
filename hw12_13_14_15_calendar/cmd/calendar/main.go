@@ -1,96 +1,30 @@
+//go:generate protoc --go_out=../../api --proto_path=../../api/ ../../api/EventService.proto
+//go:generate protoc --go-grpc_out=../../api --proto_path=../../api/ ../../api/EventServiceInterface.proto
+
 package main
 
 import (
-	"context"
-	"errors"
-	"flag"
 	"fmt"
-	"log"
-	"net/http"
 	"os"
-	"os/signal"
-	"syscall"
-	"time"
+	"path/filepath"
 
 	"github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/app"
 	"github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/logger"
+	internalgrpc "github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/server/grpcservice"
 	internalhttp "github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/server/http"
-	memorystorage "github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/storage/memory"
-	sqlstorage "github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/storage/sql"
+	"github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/storage"
 )
 
-var configFile string
-
-func init() {
-	flag.StringVar(&configFile, "config", "/etc/calendar/config.toml", "Path to configuration file")
-}
-
 func main() {
-	var idb app.Storage
+	conf := NewConfig().CalendarConf
+	storage := storage.NewStorage(conf.Storage)
+	logger := logger.NewLogger(conf.Logger.Level, os.Stdout)
+	calendar := app.NewCalendar(logger, conf, storage)
+	httpsrv := internalhttp.NewServer(logger, calendar, conf.HTTP.Host, conf.HTTP.Port)
+	grpcsrv, _ := internalgrpc.NewServer(logger, calendar, conf.GRPC.Host, conf.GRPC.Port)
 
-	flag.Parse()
+	calendar.Run(httpsrv, grpcsrv)
 
-	if flag.Arg(0) == "version" {
-		printVersion()
-		return
-	}
-
-	config := NewConfig()
-	if err := config.LoadFileTOML(configFile); err != nil {
-		fmt.Fprintf(os.Stderr, "Can't load config file:%v error: %v\n", configFile, err)
-		os.Exit(1)
-	}
-
-	fmt.Println("Config:", config)
-
-	logg, err := logger.New(config.Logger.Level, os.Stdin, nil)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Can't allocate logger:%v\n", err)
-		os.Exit(1)
-	}
-
-	ctx, cancel := signal.NotifyContext(context.Background(),
-		syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
-	defer cancel()
-
-	switch config.Storage.DB {
-	case "in-memory":
-		db := memorystorage.New()
-		idb = db
-	case "sql":
-		db := sqlstorage.New(config.Storage.DSN)
-		err := db.Connect(ctx)
-		if err != nil {
-			log.Fatalf("Can't connect to storage:%v\n", err) //nolint
-		}
-		idb = db
-	}
-
-	calendar := app.New(logg, idb)
-
-	server := internalhttp.NewServer(logg, calendar, config.HTTPServer)
-
-	go func() {
-		<-ctx.Done()
-
-		ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
-		defer cancel()
-
-		if err := server.Stop(ctx); err != nil {
-			logg.Errorf("failed to stop http server:%v\n", err)
-		}
-		if err := idb.Close(ctx); err != nil {
-			logg.Errorf("failed to close db:%v\n", err)
-		}
-	}()
-
-	logg.Infof("calendar is running...\n")
-
-	if err := server.Start(ctx); err != nil {
-		if !errors.Is(err, http.ErrServerClosed) {
-			logg.Errorf("failed to start http server: %v\n", err.Error())
-			cancel()
-			os.Exit(1)
-		}
-	}
+	filename := filepath.Base(os.Args[0])
+	fmt.Printf("%s stopped\n", filename)
 }

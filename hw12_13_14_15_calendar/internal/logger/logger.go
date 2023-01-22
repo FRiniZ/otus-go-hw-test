@@ -1,7 +1,6 @@
 package logger
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -19,26 +18,31 @@ const (
 
 var ErrLogLevel = errors.New("unrecognized log_level")
 
+type Conf struct {
+	Level string `toml:"level"`
+}
+
 type Logger struct {
 	logLevel int
 	out      io.Writer
 	mu       *sync.Mutex
-	cancel   context.CancelFunc
 }
 
-func New(level string, out io.Writer, cancel context.CancelFunc) (*Logger, error) {
+func NewLogger(level string, out io.Writer) *Logger {
 	switch strings.ToUpper(level) {
 	case "ERROR":
-		return &Logger{logLevel: LevelError, mu: &sync.Mutex{}, out: out, cancel: cancel}, nil
+		return &Logger{logLevel: LevelError, mu: &sync.Mutex{}, out: out}
 	case "WARN":
-		return &Logger{logLevel: LevelWarn, mu: &sync.Mutex{}, out: out, cancel: cancel}, nil
+		return &Logger{logLevel: LevelWarn, mu: &sync.Mutex{}, out: out}
 	case "INFO":
-		return &Logger{logLevel: LevelInfo, mu: &sync.Mutex{}, out: out, cancel: cancel}, nil
+		return &Logger{logLevel: LevelInfo, mu: &sync.Mutex{}, out: out}
 	case "DEBUG":
-		return &Logger{logLevel: LevelDebug, mu: &sync.Mutex{}, out: out, cancel: cancel}, nil
+		return &Logger{logLevel: LevelDebug, mu: &sync.Mutex{}, out: out}
 	default:
-		return nil, ErrLogLevel
+		fmt.Fprintln(os.Stderr, "unrecognized log_level")
+		os.Exit(1)
 	}
+	return nil
 }
 
 func (l *Logger) printf(format string, a ...interface{}) {
