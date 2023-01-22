@@ -4,8 +4,24 @@ import (
 	"net/http"
 )
 
-func loggingMiddleware(next http.Handler) http.Handler {
+type MiddlewareLogger struct{}
+
+func NewMiddlewareLogger() *MiddlewareLogger {
+	return &MiddlewareLogger{}
+}
+
+func (m *MiddlewareLogger) loggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// TODO
+		l := r.Context().Value(KeyLoggerID).(Logger)
+		rwc := NewResponseWriterCounter(w, r)
+		next.ServeHTTP(rwc, r)
+		l.Debugf(rwc.String())
+	})
+}
+
+func (m *MiddlewareLogger) setCommonHeadersMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		next.ServeHTTP(w, r)
 	})
 }

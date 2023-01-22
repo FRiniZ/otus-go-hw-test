@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+import "EventService.proto";
+import "google/protobuf/empty.proto";
+option go_package ="./stub/;api";
+
+package api;
+
+service Calendar {
+    rpc InsertEvent (ReqByEvent) returns (RepID) {};
+    rpc UpdateEvent (ReqByEvent) returns (google.protobuf.Empty) {};
+    rpc DeleteEvent (ReqByID) returns (google.protobuf.Empty){};
+    rpc LookupEvent (ReqByID) returns (RepEvents){};
+    rpc ListEvents (ReqByUser) returns (RepEvents){};
+    rpc ListEventsDay (ReqByUserByDate) returns (RepEvents){};
+    rpc ListEventsWeek (ReqByUserByDate) returns (RepEvents){};
+    rpc ListEventsMonth (ReqByUserByDate) returns (RepEvents){};
+}
