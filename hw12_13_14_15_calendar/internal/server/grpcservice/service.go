@@ -1,13 +1,16 @@
-package grpcservice
+package internalgrpc
 
 import (
 	context "context"
 	"net"
+	"strings"
 	"time"
 
 	api "github.com/FRiniZ/otus-go-hw-test/hw12_calendar/api/stub"
-	"github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/storage"
+	"github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/model"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/peer"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -18,11 +21,6 @@ const (
 	KeyMethodID ctxKeyID = iota
 )
 
-type Conf struct {
-	Port string `toml:"port"`
-	Host string `toml:"host"`
-}
-
 type Logger interface {
 	Fatalf(format string, a ...interface{})
 	Errorf(format string, a ...interface{})
@@ -32,25 +30,26 @@ type Logger interface {
 }
 
 type Application interface {
-	InsertEvent(context.Context, *storage.Event) error
-	UpdateEvent(context.Context, *storage.Event) error
+	InsertEvent(context.Context, *model.Event) error
+	UpdateEvent(context.Context, *model.Event) error
 	DeleteEvent(context.Context, int64) error
-	LookupEvent(context.Context, int64) (storage.Event, error)
-	ListEvents(context.Context, int64) ([]storage.Event, error)
-	ListEventsDay(context.Context, int64, time.Time) ([]storage.Event, error)
-	ListEventsWeek(context.Context, int64, time.Time) ([]storage.Event, error)
-	ListEventsMonth(context.Context, int64, time.Time) ([]storage.Event, error)
+	LookupEvent(context.Context, int64) (model.Event, error)
+	ListEvents(context.Context, int64) ([]model.Event, error)
+	ListEventsDay(context.Context, int64, time.Time) ([]model.Event, error)
+	ListEventsWeek(context.Context, int64, time.Time) ([]model.Event, error)
+	ListEventsMonth(context.Context, int64, time.Time) ([]model.Event, error)
 }
 
 type Service struct {
 	log     Logger
-	conf    Conf
 	app     Application
 	basesrv *grpc.Server
+	host    string
+	port    string
 	api.UnimplementedCalendarServer
 }
 
-func (Service) APIEventFromEvent(event *storage.Event) *api.Event {
+func (Service) APIEventFromEvent(event *model.Event) *api.Event {
 	return &api.Event{
 		ID:          &event.ID,
 		UserID:      &event.UserID,
@@ -62,8 +61,8 @@ func (Service) APIEventFromEvent(event *storage.Event) *api.Event {
 	}
 }
 
-func (Service) EventFromAPIEvent(apiEvent *api.Event) *storage.Event {
-	event := storage.Event{}
+func (Service) EventFromAPIEvent(apiEvent *api.Event) *model.Event {
+	event := model.Event{}
 
 	event.ID = *apiEvent.ID
 	event.UserID = *apiEvent.UserID
@@ -178,18 +177,54 @@ func (s Service) ListEventsMonth(ctx context.Context, req *api.ReqByUserByDate) 
 	return &rep, nil
 }
 
-func New(log Logger, app Application, conf Conf, basesrv *grpc.Server) *Service {
-	return &Service{app: app, conf: conf, log: log, basesrv: basesrv}
+func NewServer(log Logger, app Application, host, port string) (*Service, *grpc.Server) {
+	unarayLoggerEnricherIntercepter := func(ctx context.Context,
+		req interface{},
+		info *grpc.UnaryServerInfo,
+		handler grpc.UnaryHandler) (interface{}, error) { //nolint:gofumpt
+		var b strings.Builder
+		ip, _ := peer.FromContext(ctx)
+		md, ok := metadata.FromIncomingContext(ctx)
+		userAgent := "unknown"
+
+		if ok {
+			userAgent = md["user-agent"][0]
+		}
+
+		b.WriteString(ip.Addr.String())
+		b.WriteString(" ")
+		b.WriteString(time.Now().Format("02/Jan/2006:15:04:05 -0700"))
+		b.WriteString(" ")
+		b.WriteString(info.FullMethod)
+		b.WriteString(" ")
+		b.WriteString(userAgent)
+		b.WriteString("\"\n")
+		log.Infof(b.String())
+		return handler(ctx, req)
+	}
+
+	basesrv := grpc.NewServer(grpc.UnaryInterceptor(unarayLoggerEnricherIntercepter))
+
+	server := &Service{
+		log:                         log,
+		app:                         app,
+		basesrv:                     basesrv,
+		host:                        host,
+		port:                        port,
+		UnimplementedCalendarServer: api.UnimplementedCalendarServer{},
+	}
+
+	api.RegisterCalendarServer(server.basesrv, server)
+
+	return server, basesrv
 }
 
 func (s *Service) Start(context.Context) error {
-	addr := net.JoinHostPort(s.conf.Host, s.conf.Port)
+	addr := net.JoinHostPort(s.host, s.port)
 	dial, err := net.Listen("tcp", addr)
 	if err != nil {
 		return err
 	}
-
-	api.RegisterCalendarServer(s.basesrv, s)
 
 	s.log.Infof("GRPC-server started on:%v\n", addr)
 	if err := s.basesrv.Serve(dial); err != nil {

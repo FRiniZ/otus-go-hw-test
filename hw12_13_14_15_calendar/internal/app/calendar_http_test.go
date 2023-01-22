@@ -1,4 +1,4 @@
-package internalhttp
+package app
 
 import (
 	"context"
@@ -11,9 +11,9 @@ import (
 	"strings"
 	"testing"
 
-	app "github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/app"
 	"github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/logger"
-	"github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/storage"
+	"github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/model"
+	internalhttp "github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/server/http"
 	memorystorage "github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/storage/memory"
 	"github.com/stretchr/testify/require"
 )
@@ -37,7 +37,7 @@ func helperDecode(stream io.Reader, r interface{}) error {
 	return nil
 }
 
-func TestHTTPServer(t *testing.T) {
+func TestCalendarHTTPServer(t *testing.T) {
 	userID400 := int64(400)
 	bodyUserID := fmt.Sprintf(`{"userid": %d}`, userID400)
 
@@ -72,11 +72,9 @@ func TestHTTPServer(t *testing.T) {
 			}`, userID400)
 
 	db := memorystorage.New()
-	log, err := logger.New("DEBUG", os.Stdout)
-	require.NoError(t, err)
-	calendar := app.New(log, db)
-	conf := Conf{}
-	httpsrv := New(log, calendar, conf, nil)
+	log := logger.NewLogger("DEBUG", os.Stdout)
+	calendar := &Calendar{log: log, storage: db}
+	httpsrv := internalhttp.NewServer(log, calendar, "", "")
 	httpcli := &http.Client{}
 
 	t.Run("case_insert", func(t *testing.T) {
@@ -131,7 +129,7 @@ func TestHTTPServer(t *testing.T) {
 	})
 
 	t.Run("case_lookup", func(t *testing.T) {
-		var rep storage.Event
+		var rep model.Event
 		ts := httptest.NewServer(http.HandlerFunc(httpsrv.LookupEvent))
 		defer ts.Close()
 
@@ -148,7 +146,7 @@ func TestHTTPServer(t *testing.T) {
 	})
 
 	t.Run("case_listevents", func(t *testing.T) {
-		var rep []storage.Event
+		var rep []model.Event
 		ts := httptest.NewServer(http.HandlerFunc(httpsrv.ListEvents))
 		defer ts.Close()
 

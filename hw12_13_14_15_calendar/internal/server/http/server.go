@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/storage"
+	"github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/model"
 )
 
 type ctxKeyID int
@@ -18,21 +18,12 @@ const (
 	KeyLoggerID ctxKeyID = iota
 )
 
-type Conf struct {
-	Host string `toml:"host"`
-	Port string `toml:"port"`
-}
-
-type ResponceErr struct {
-	Msg string
-}
-
 type Server struct {
-	srv    http.Server
-	log    Logger
-	app    Application
-	conf   Conf
-	cancel context.CancelFunc
+	log  Logger
+	srv  http.Server
+	app  Application
+	host string
+	port string
 }
 
 type Logger interface {
@@ -44,14 +35,14 @@ type Logger interface {
 }
 
 type Application interface {
-	InsertEvent(context.Context, *storage.Event) error
-	UpdateEvent(context.Context, *storage.Event) error
+	InsertEvent(context.Context, *model.Event) error
+	UpdateEvent(context.Context, *model.Event) error
 	DeleteEvent(context.Context, int64) error
-	LookupEvent(context.Context, int64) (storage.Event, error)
-	ListEvents(context.Context, int64) ([]storage.Event, error)
-	ListEventsDay(context.Context, int64, time.Time) ([]storage.Event, error)
-	ListEventsWeek(context.Context, int64, time.Time) ([]storage.Event, error)
-	ListEventsMonth(context.Context, int64, time.Time) ([]storage.Event, error)
+	LookupEvent(context.Context, int64) (model.Event, error)
+	ListEvents(context.Context, int64) ([]model.Event, error)
+	ListEventsDay(context.Context, int64, time.Time) ([]model.Event, error)
+	ListEventsWeek(context.Context, int64, time.Time) ([]model.Event, error)
+	ListEventsMonth(context.Context, int64, time.Time) ([]model.Event, error)
 }
 
 type reqByID struct {
@@ -67,8 +58,8 @@ type reqByUserByDate struct {
 	Date   time.Time `json:"date"`
 }
 
-func New(log Logger, app Application, conf Conf, cancel context.CancelFunc) *Server {
-	return &Server{log: log, app: app, conf: conf, cancel: cancel}
+func NewServer(log Logger, app Application, host, port string) *Server {
+	return &Server{log: log, app: app, host: host, port: port}
 }
 
 func (s *Server) doNothing(w http.ResponseWriter, r *http.Request) {
@@ -87,10 +78,11 @@ func (s *Server) helperDecode(stream io.ReadCloser, w http.ResponseWriter, data 
 }
 
 func (s *Server) InsertEvent(w http.ResponseWriter, r *http.Request) {
-	var event storage.Event
+	var event model.Event
 	if err := s.helperDecode(r.Body, w, &event); err != nil {
 		return
 	}
+
 	err := s.app.InsertEvent(r.Context(), &event)
 	if err != nil {
 		s.log.Errorf("InsertEvent:%v\n", err)
@@ -103,7 +95,7 @@ func (s *Server) InsertEvent(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) UpdateEvent(w http.ResponseWriter, r *http.Request) {
-	var event storage.Event
+	var event model.Event
 	if err := s.helperDecode(r.Body, w, &event); err != nil {
 		return
 	}
@@ -260,7 +252,7 @@ func (s *Server) ListEventsMonth(w http.ResponseWriter, r *http.Request) { //nol
 }
 
 func (s *Server) Start(ctx context.Context) error {
-	addr := net.JoinHostPort(s.conf.Host, s.conf.Port)
+	addr := net.JoinHostPort(s.host, s.port)
 	midLogger := NewMiddlewareLogger()
 	mux := http.NewServeMux()
 

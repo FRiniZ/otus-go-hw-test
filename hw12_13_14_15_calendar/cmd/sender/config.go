@@ -12,7 +12,7 @@ import (
 var configFile string
 
 func init() {
-	flag.StringVar(&configFile, "config", "/etc/calendar/calendar_config.toml", "Path to configuration file")
+	flag.StringVar(&configFile, "config", "/etc/calendar/sender_config.toml", "Path to configuration file")
 	flag.Parse()
 
 	if flag.Arg(0) == "version" {
@@ -22,7 +22,7 @@ func init() {
 }
 
 type Config struct {
-	app.CalendarConf
+	app.SenderConf
 }
 
 func NewConfig() Config {

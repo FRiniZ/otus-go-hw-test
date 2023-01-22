@@ -6,12 +6,12 @@ import (
 	"time"
 
 	sqlmock "github.com/DATA-DOG/go-sqlmock"
-	"github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/storage"
+	"github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/model"
 	"github.com/stretchr/testify/require"
 )
 
 func TestSqlStorage(t *testing.T) {
-	event := storage.Event{
+	event := model.Event{
 		ID:          0,
 		UserID:      1,
 		Title:       "TitleN1",

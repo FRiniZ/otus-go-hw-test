@@ -1,8 +1,6 @@
-package storage
+package model
 
-import (
-	"time"
-)
+import "time"
 
 type Event struct {
 	ID          int64     `json:"id"`
@@ -12,4 +10,5 @@ type Event struct {
 	OnTime      time.Time `json:"ontime"`
 	OffTime     time.Time `json:"offtime"`
 	NotifyTime  time.Time `json:"notifytime,omitempty"`
+	Notified    bool      `json:"-"`
 }
