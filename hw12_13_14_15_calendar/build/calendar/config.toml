@@ -1,0 +1,15 @@
+#Calendar
+[logger]
+level = "DEBUG"
+
+[http-server]
+port = "8089"
+host = "0.0.0.0"
+
+[grpc-server]
+port = "10000"
+host = "0.0.0.0"
+
+[storage]
+db = "sql"
+dsn = "postgresql://postgres:postgres@postgres:5432/calendar?sslmode=disable"
