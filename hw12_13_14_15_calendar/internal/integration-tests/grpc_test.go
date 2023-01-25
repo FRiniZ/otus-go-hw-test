@@ -1,22 +1,19 @@
-package app
+package integration_tests
 
 import (
 	"context"
+	"flag"
 	"fmt"
-	"net"
 	"os"
+	"regexp"
 	"sync"
 	"testing"
 	"time"
 
 	api "github.com/FRiniZ/otus-go-hw-test/hw12_calendar/api/stub"
-	"github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/logger"
-	internalgrpc "github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/server/grpcservice"
-	memorystorage "github.com/FRiniZ/otus-go-hw-test/hw12_calendar/internal/storage/memory"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
-	"google.golang.org/grpc/test/bufconn"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -264,41 +261,22 @@ func allGRPCTest(t *testing.T, conn *grpc.ClientConn, wg *sync.WaitGroup) {
 	})
 }
 
-func TestGrpcService(t *testing.T) { //nolint:funlen
+func TestIntegrationGRPCApi(t *testing.T) {
+	if m := flag.Lookup("test.run").Value.String(); m == "" || !regexp.MustCompile(m).MatchString(t.Name()) {
+		t.Skip("skipping as execution was not requested explicitly using go test -run")
+	}
+
+	grpc_host := "calendar"
+	if host, ok := os.LookupEnv("CALENDAR_HOST"); ok {
+		grpc_host = host
+	}
+
 	wg := &sync.WaitGroup{}
-	db := memorystorage.New()
-	log := logger.NewLogger("DEBUG", os.Stdout)
-
-	calendar := &Calendar{log: log, storage: db}
-
-	dialer := func() func(context.Context, string) (net.Conn, error) {
-		listener := bufconn.Listen(1024 * 1024)
-
-		_, server := internalgrpc.NewServer(log, calendar, "", "")
-
-		go func() {
-			if err := server.Serve(listener); err != nil {
-				require.NoError(t, err)
-			}
-		}()
-
-		return func(context.Context, string) (net.Conn, error) {
-			return listener.Dial()
-		}
-	}
-
-	getConn := func(ctx context.Context) *grpc.ClientConn {
-		conn, err := grpc.DialContext(ctx, "",
-			grpc.WithTransportCredentials(insecure.NewCredentials()),
-			grpc.WithContextDialer(dialer()))
-		if err != nil {
-			t.Fatal(err)
-		}
-		return conn
-	}
-
-	conn := getConn(context.Background())
+	conn, err := grpc.DialContext(context.Background(), grpc_host+":10000", grpc.WithTransportCredentials(insecure.NewCredentials()))
+	require.NoError(t, err)
 	defer conn.Close()
+
 	allGRPCTest(t, conn, wg)
 	wg.Wait()
+
 }

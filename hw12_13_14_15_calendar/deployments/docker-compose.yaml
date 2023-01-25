@@ -62,6 +62,10 @@ services:
         condition: service_healthy
       db:
         condition: service_healthy
+    build:
+      context: ../
+      dockerfile: ./build/calendar/Dockerfile
+
 
   calendar_scheduler:
     image:  calendar_scheduler:develop
@@ -72,11 +76,28 @@ services:
         condition: service_healthy
       db:
         condition: service_healthy
+    build:
+      context: ../
+      dockerfile: ./build/scheduler/Dockerfile
 
   calendar_sender:
     image:  calendar_sender:develop
     hostname: sender
     restart: always
+    depends_on:
+      mq:
+        condition: service_healthy
+      db:
+        condition: service_healthy
+    build:
+      context: ../
+      dockerfile: ./build/sender/Dockerfile
+
+  tests:
+    image: integration-tests:develop
+    build:
+      context: ../
+      dockerfile: ./build/integration-tests/Dockerfile
     depends_on:
       mq:
         condition: service_healthy
