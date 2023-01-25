@@ -32,7 +32,7 @@ func helperAPIEvent(id int64, userid int64, onTime, offTime time.Time) *api.Even
 	return &aEvent
 }
 
-func allGRPCTest(t *testing.T, conn *grpc.ClientConn, wg *sync.WaitGroup) {
+func allTest(t *testing.T, conn *grpc.ClientConn, wg *sync.WaitGroup) { //nolint:funlen,thelper
 	wg.Add(1)
 	defer wg.Done()
 
@@ -48,9 +48,6 @@ func allGRPCTest(t *testing.T, conn *grpc.ClientConn, wg *sync.WaitGroup) {
 			step := step
 			t.Parallel()
 			ctx := context.Background()
-			//conn := getConn(ctx)
-			//defer conn.Close()
-
 			client := api.NewCalendarClient(conn)
 			for i := 0; i < attempt; i++ {
 				event := api.ReqByEvent{
@@ -61,7 +58,6 @@ func allGRPCTest(t *testing.T, conn *grpc.ClientConn, wg *sync.WaitGroup) {
 				require.NoError(t, err)
 				require.NotZero(t, rep.ID)
 			}
-
 		})
 
 		step += step
@@ -71,9 +67,6 @@ func allGRPCTest(t *testing.T, conn *grpc.ClientConn, wg *sync.WaitGroup) {
 			step := step
 			t.Parallel()
 			ctx := context.Background()
-			//conn := getConn(ctx)
-			//defer conn.Close()
-
 			client := api.NewCalendarClient(conn)
 			for i := 0; i < attempt; i++ {
 				event := api.ReqByEvent{
@@ -96,9 +89,6 @@ func allGRPCTest(t *testing.T, conn *grpc.ClientConn, wg *sync.WaitGroup) {
 			step := step
 			t.Parallel()
 			ctx := context.Background()
-			//conn := getConn(ctx)
-			//defer conn.Close()
-
 			client := api.NewCalendarClient(conn)
 			for i := 0; i < attempt; i++ {
 				event := api.ReqByEvent{
@@ -120,9 +110,6 @@ func allGRPCTest(t *testing.T, conn *grpc.ClientConn, wg *sync.WaitGroup) {
 			step := step
 			t.Parallel()
 			ctx := context.Background()
-			//conn := getConn(ctx)
-			//defer conn.Close()
-
 			client := api.NewCalendarClient(conn)
 			for i := 0; i < attempt; i++ {
 				event := api.ReqByEvent{
@@ -146,9 +133,6 @@ func allGRPCTest(t *testing.T, conn *grpc.ClientConn, wg *sync.WaitGroup) {
 			step := step
 			t.Parallel()
 			ctx := context.Background()
-			//conn := getConn(ctx)
-			//defer conn.Close()
-
 			userID := int64(step)
 			client := api.NewCalendarClient(conn)
 			for i := 0; i < attempt; i++ {
@@ -172,9 +156,6 @@ func allGRPCTest(t *testing.T, conn *grpc.ClientConn, wg *sync.WaitGroup) {
 			step := step
 			t.Parallel()
 			ctx := context.Background()
-			//conn := getConn(ctx)
-			//defer conn.Close()
-
 			userID := int64(step)
 			client := api.NewCalendarClient(conn)
 			currTime2 := currTime
@@ -201,9 +182,6 @@ func allGRPCTest(t *testing.T, conn *grpc.ClientConn, wg *sync.WaitGroup) {
 			step := step
 			t.Parallel()
 			ctx := context.Background()
-			//conn := getConn(ctx)
-			//defer conn.Close()
-
 			userID := int64(step)
 			client := api.NewCalendarClient(conn)
 
@@ -235,9 +213,6 @@ func allGRPCTest(t *testing.T, conn *grpc.ClientConn, wg *sync.WaitGroup) {
 			step := step
 			t.Parallel()
 			ctx := context.Background()
-			//conn := getConn(ctx)
-			//defer conn.Close()
-
 			userID := int64(step)
 			client := api.NewCalendarClient(conn)
 
@@ -264,7 +239,7 @@ func allGRPCTest(t *testing.T, conn *grpc.ClientConn, wg *sync.WaitGroup) {
 	})
 }
 
-func TestGrpcService(t *testing.T) { //nolint:funlen
+func TestGrpcService(t *testing.T) {
 	wg := &sync.WaitGroup{}
 	db := memorystorage.New()
 	log := logger.NewLogger("DEBUG", os.Stdout)
@@ -299,6 +274,6 @@ func TestGrpcService(t *testing.T) { //nolint:funlen
 
 	conn := getConn(context.Background())
 	defer conn.Close()
-	allGRPCTest(t, conn, wg)
+	allTest(t, conn, wg)
 	wg.Wait()
 }

@@ -1,4 +1,4 @@
-package integration_tests
+package integrationtests
 
 import (
 	"context"
@@ -35,17 +35,17 @@ func helperDecode(stream io.Reader, r interface{}) error {
 	return nil
 }
 
-func TestIntegrationHTTPAPi(t *testing.T) {
+func TestIntegrationHTTPAPi(t *testing.T) { //nolint:nolintlint
 	if m := flag.Lookup("test.run").Value.String(); m == "" || !regexp.MustCompile(m).MatchString(t.Name()) {
 		t.Skip("skipping as execution was not requested explicitly using go test -run")
 	}
 
-	http_host := "calendar"
+	httpHost := "calendar"
 	if host, ok := os.LookupEnv("CALENDAR_HOST"); ok {
-		http_host = host
+		httpHost = host
 	}
 
-	http_port := "8089"
+	httpPort := "8089"
 
 	userID400 := int64(400)
 	bodyUserID := fmt.Sprintf(`{"userid": %d}`, userID400)
@@ -85,7 +85,7 @@ func TestIntegrationHTTPAPi(t *testing.T) {
 		httpcli := &http.Client{}
 
 		reader := strings.NewReader(body1)
-		url := "http://" + http_host + ":" + http_port + "/InsertEvent"
+		url := "http://" + httpHost + ":" + httpPort + "/InsertEvent"
 
 		req, err := http.NewRequestWithContext(context.Background(), http.MethodPost, url, reader)
 		require.NoError(t, err)
@@ -111,13 +111,12 @@ func TestIntegrationHTTPAPi(t *testing.T) {
 
 		require.Empty(t, rep.Err)
 		require.EqualValues(t, msgInserted, rep.Msg)
-
 	})
 
 	t.Run("case_update", func(t *testing.T) {
 		var rep ReplayMsg
 		httpcli := &http.Client{}
-		url := "http://" + http_host + ":" + http_port + "/UpdateEvent"
+		url := "http://" + httpHost + ":" + httpPort + "/UpdateEvent"
 
 		reader := strings.NewReader(body2)
 		req, err := http.NewRequestWithContext(context.Background(), http.MethodPost, url, reader)
@@ -136,7 +135,7 @@ func TestIntegrationHTTPAPi(t *testing.T) {
 	t.Run("case_lookup", func(t *testing.T) {
 		var rep model.Event
 		httpcli := &http.Client{}
-		url := "http://" + http_host + ":" + http_port + "/LookupEvent"
+		url := "http://" + httpHost + ":" + httpPort + "/LookupEvent"
 
 		reader := strings.NewReader(body1)
 		req, err := http.NewRequestWithContext(context.Background(), http.MethodPost, url, reader)
@@ -153,7 +152,7 @@ func TestIntegrationHTTPAPi(t *testing.T) {
 	t.Run("case_listevents", func(t *testing.T) {
 		var rep []model.Event
 		httpcli := &http.Client{}
-		url := "http://" + http_host + ":" + http_port + "/ListEvents"
+		url := "http://" + httpHost + ":" + httpPort + "/ListEvents"
 
 		reader := strings.NewReader(bodyUserID)
 		req, err := http.NewRequestWithContext(context.Background(), http.MethodPost, url, reader)
@@ -172,7 +171,7 @@ func TestIntegrationHTTPAPi(t *testing.T) {
 	t.Run("case_delete", func(t *testing.T) {
 		var rep ReplayMsg
 		httpcli := &http.Client{}
-		url := "http://" + http_host + ":" + http_port + "/DeleteEvent"
+		url := "http://" + httpHost + ":" + httpPort + "/DeleteEvent"
 
 		reader := strings.NewReader(body2)
 		req, err := http.NewRequestWithContext(context.Background(), http.MethodPost, url, reader)

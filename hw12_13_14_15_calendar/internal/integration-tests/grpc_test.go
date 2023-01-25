@@ -1,4 +1,4 @@
-package integration_tests
+package integrationtests
 
 import (
 	"context"
@@ -29,7 +29,7 @@ func helperAPIEvent(id int64, userid int64, onTime, offTime time.Time) *api.Even
 	return &aEvent
 }
 
-func allGRPCTest(t *testing.T, conn *grpc.ClientConn, wg *sync.WaitGroup) {
+func allGRPCTest(t *testing.T, conn *grpc.ClientConn, wg *sync.WaitGroup) { //nolint:funlen,thelper
 	wg.Add(1)
 	defer wg.Done()
 
@@ -45,9 +45,6 @@ func allGRPCTest(t *testing.T, conn *grpc.ClientConn, wg *sync.WaitGroup) {
 			step := step
 			t.Parallel()
 			ctx := context.Background()
-			//conn := getConn(ctx)
-			//defer conn.Close()
-
 			client := api.NewCalendarClient(conn)
 			for i := 0; i < attempt; i++ {
 				event := api.ReqByEvent{
@@ -58,7 +55,6 @@ func allGRPCTest(t *testing.T, conn *grpc.ClientConn, wg *sync.WaitGroup) {
 				require.NoError(t, err)
 				require.NotZero(t, rep.ID)
 			}
-
 		})
 
 		step += step
@@ -68,9 +64,6 @@ func allGRPCTest(t *testing.T, conn *grpc.ClientConn, wg *sync.WaitGroup) {
 			step := step
 			t.Parallel()
 			ctx := context.Background()
-			//conn := getConn(ctx)
-			//defer conn.Close()
-
 			client := api.NewCalendarClient(conn)
 			for i := 0; i < attempt; i++ {
 				event := api.ReqByEvent{
@@ -93,9 +86,6 @@ func allGRPCTest(t *testing.T, conn *grpc.ClientConn, wg *sync.WaitGroup) {
 			step := step
 			t.Parallel()
 			ctx := context.Background()
-			//conn := getConn(ctx)
-			//defer conn.Close()
-
 			client := api.NewCalendarClient(conn)
 			for i := 0; i < attempt; i++ {
 				event := api.ReqByEvent{
@@ -117,9 +107,6 @@ func allGRPCTest(t *testing.T, conn *grpc.ClientConn, wg *sync.WaitGroup) {
 			step := step
 			t.Parallel()
 			ctx := context.Background()
-			//conn := getConn(ctx)
-			//defer conn.Close()
-
 			client := api.NewCalendarClient(conn)
 			for i := 0; i < attempt; i++ {
 				event := api.ReqByEvent{
@@ -143,9 +130,6 @@ func allGRPCTest(t *testing.T, conn *grpc.ClientConn, wg *sync.WaitGroup) {
 			step := step
 			t.Parallel()
 			ctx := context.Background()
-			//conn := getConn(ctx)
-			//defer conn.Close()
-
 			userID := int64(step)
 			client := api.NewCalendarClient(conn)
 			for i := 0; i < attempt; i++ {
@@ -169,9 +153,6 @@ func allGRPCTest(t *testing.T, conn *grpc.ClientConn, wg *sync.WaitGroup) {
 			step := step
 			t.Parallel()
 			ctx := context.Background()
-			//conn := getConn(ctx)
-			//defer conn.Close()
-
 			userID := int64(step)
 			client := api.NewCalendarClient(conn)
 			currTime2 := currTime
@@ -198,9 +179,6 @@ func allGRPCTest(t *testing.T, conn *grpc.ClientConn, wg *sync.WaitGroup) {
 			step := step
 			t.Parallel()
 			ctx := context.Background()
-			//conn := getConn(ctx)
-			//defer conn.Close()
-
 			userID := int64(step)
 			client := api.NewCalendarClient(conn)
 
@@ -232,9 +210,6 @@ func allGRPCTest(t *testing.T, conn *grpc.ClientConn, wg *sync.WaitGroup) {
 			step := step
 			t.Parallel()
 			ctx := context.Background()
-			//conn := getConn(ctx)
-			//defer conn.Close()
-
 			userID := int64(step)
 			client := api.NewCalendarClient(conn)
 
@@ -266,17 +241,18 @@ func TestIntegrationGRPCApi(t *testing.T) {
 		t.Skip("skipping as execution was not requested explicitly using go test -run")
 	}
 
-	grpc_host := "calendar"
+	grpcHost := "calendar"
 	if host, ok := os.LookupEnv("CALENDAR_HOST"); ok {
-		grpc_host = host
+		grpcHost = host
 	}
+	grpcPort := "10000"
 
 	wg := &sync.WaitGroup{}
-	conn, err := grpc.DialContext(context.Background(), grpc_host+":10000", grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.DialContext(context.Background(), grpcHost+":"+grpcPort,
+		grpc.WithTransportCredentials(insecure.NewCredentials()))
 	require.NoError(t, err)
 	defer conn.Close()
 
 	allGRPCTest(t, conn, wg)
 	wg.Wait()
-
 }
