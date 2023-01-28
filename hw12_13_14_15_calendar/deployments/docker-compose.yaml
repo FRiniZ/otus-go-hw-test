@@ -1,13 +1,105 @@
-version: "3"
+version: '3'
+
+volumes:  
+  pgdata:
+  rabbitmq-data:
 
 services:
-  protoc-all:
-    image: namely/protoc-all:latest
-    command:
-      -d ../api/
-      -o ../api/
-      -i https://github.com/googleapis/googleapis
-      -l go
-      --with-gateway
+  mq:
+    image: rabbitmq:3-management
+    hostname: rabbitmq
+    restart: always
+    environment:
+      RABBITMQ_DEFAULT_USER: "rabbitmq"
+      RABBITMQ_DEFAULT_PASS: "rabbitmq"
+    healthcheck:
+      test: rabbitmq-diagnostics -q ping
+      interval: 10s
+      timeout: 30s
+      retries: 3
+    ports:
+      - "15672:15672"
+      - "5672:5672"
     volumes:
-      - ./:/defs
+      - "rabbitmq-data:/var/lib/rabbitmq"
+
+  db:
+    image: postgres
+    hostname: postgres
+    restart: always
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_DB: calendar
+    healthcheck:
+      test: ["CMD-SHELL", "/usr/bin/pg_isready -U postgres"]
+      interval: 10s
+      timeout: 30s
+      retries: 3
+    volumes:
+      - "pgdata:/var/lib/postgresql/data"
+    ports:
+      - "5432:5432"
+
+  migrate:
+    image: migrate/migrate
+    volumes:
+      - ../migrations/db/:/migrations
+    command: ["-path", "/migrations/", "-database",  "postgresql://postgres:postgres@postgres:5432/calendar?sslmode=disable", "up"]
+    depends_on:
+      db:
+        condition: service_healthy
+    
+  calendar:
+    image:  calendar:develop
+    hostname: calendar
+    restart: always
+    ports:
+      - "8089:8089"
+      - "10000:10000"
+    depends_on:
+      mq:
+        condition: service_healthy
+      db:
+        condition: service_healthy
+    build:
+      context: ../
+      dockerfile: ./build/calendar/Dockerfile
+
+
+  calendar_scheduler:
+    image:  calendar_scheduler:develop
+    hostname: scheduler
+    restart: always
+    depends_on:
+      mq:
+        condition: service_healthy
+      db:
+        condition: service_healthy
+    build:
+      context: ../
+      dockerfile: ./build/scheduler/Dockerfile
+
+  calendar_sender:
+    image:  calendar_sender:develop
+    hostname: sender
+    restart: always
+    depends_on:
+      mq:
+        condition: service_healthy
+      db:
+        condition: service_healthy
+    build:
+      context: ../
+      dockerfile: ./build/sender/Dockerfile
+
+  tests:
+    image: integration-tests:develop
+    build:
+      context: ../
+      dockerfile: ./build/integration-tests/Dockerfile
+    depends_on:
+      mq:
+        condition: service_healthy
+      db:
+        condition: service_healthy
